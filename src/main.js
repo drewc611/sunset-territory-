@@ -45,7 +45,8 @@ const npcs = createNpcs(scene, props.towns);
 const jobs = createJobs(scene, npcs, props.material);
 const audio = createAudio();
 const ambient = createAmbient(scene, { forcedWeather: params.get('weather') }); // ?weather=rain for testing
-const settings = { sound: true, quality: 'auto', invertCam: false, ...loadSettings() };
+const settings = { sound: true, quality: 'auto', invertCam: false, bigControls: false, ...loadSettings() };
+document.body.classList.toggle('big', !!settings.bigControls);
 const quality = createQuality({ renderer, scene, sun: sky.sun, props, touch });
 quality.set(settings.quality);
 audio.setMuted(!settings.sound);
@@ -198,6 +199,7 @@ const ui = createUi({
     if (k === 'sound') audio.setMuted(!v);
     if (k === 'quality') quality.set(v);
     if (k === 'invertCam') input.setInvert(v);
+    if (k === 'bigControls') document.body.classList.toggle('big', v);
   },
   onNewGame() { clearGame(); location.reload(); },
 });

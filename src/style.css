@@ -69,5 +69,10 @@ canvas#game { display: block; width: 100%; height: 100%; touch-action: none; }
 #jPage section:last-child button { margin-top: 8px; background: #8a3a2a; }
 #saveNote { font-size: 14px; opacity: .75; margin: 12px 0 0; }
 
+/* Larger touch controls (journal setting). */
+body.big #stick { transform: scale(1.3); transform-origin: left bottom; }
+body.big #spur { transform: scale(1.3); transform-origin: right bottom; }
+body.big #act { transform: scale(1.25); transform-origin: right bottom; bottom: calc(150px + env(safe-area-inset-bottom, 0px)); }
+
 /* The hidden attribute must win over the display rules above. */
 [hidden] { display: none !important; }

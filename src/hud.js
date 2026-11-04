@@ -90,8 +90,14 @@ export function createHud() {
     for (const p of POIS) {
       if (!discovered[p.name]) continue;
       const mx = (p.x / WORLD + 0.5) * MS, mz = (p.z / WORLD + 0.5) * MS;
+      // Shape as well as color, so markers read without color vision.
       mctx.fillStyle = p.type === 'camp' ? '#ff8c3a' : p.type === 'town' ? '#c9a24d' : '#d8c7a1';
-      mctx.fillRect(mx - 2, mz - 2, 4, 4);
+      mctx.strokeStyle = '#1b140d'; mctx.lineWidth = 1;
+      mctx.beginPath();
+      if (p.type === 'town') mctx.rect(mx - 3, mz - 3, 6, 6);
+      else if (p.type === 'camp') { mctx.moveTo(mx, mz - 4); mctx.lineTo(mx + 3.5, mz + 3); mctx.lineTo(mx - 3.5, mz + 3); mctx.closePath(); }
+      else { mctx.moveTo(mx, mz - 3.5); mctx.lineTo(mx + 3, mz); mctx.lineTo(mx, mz + 3.5); mctx.lineTo(mx - 3, mz); mctx.closePath(); }
+      mctx.fill(); mctx.stroke();
     }
     if (opts.target) {
       // Job marker: a brass ring that pulses.

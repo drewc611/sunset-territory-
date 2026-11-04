@@ -68,20 +68,21 @@ export function createUi({ onSetting, onNewGame }) {
           ${['auto', 'low', 'medium', 'high'].map((q) => `<option value="${q}" ${settings.quality === q ? 'selected' : ''}>${q[0].toUpperCase() + q.slice(1)}</option>`).join('')}
         </select></label>
         <label><input type="checkbox" id="setInvert" ${settings.invertCam ? 'checked' : ''}> Invert camera drag</label>
+        <label><input type="checkbox" id="setBig" ${settings.bigControls ? 'checked' : ''}> Larger touch controls</label>
         <button type="button" id="newGame">Start over</button>
       </section>`;
     $('setSound').onchange = (e) => onSetting('sound', e.target.checked);
     $('setQuality').onchange = (e) => onSetting('quality', e.target.value);
     $('setInvert').onchange = (e) => onSetting('invertCam', e.target.checked);
+    $('setBig').onchange = (e) => onSetting('bigControls', e.target.checked);
     $('newGame').onclick = () => { if (confirm('Start over? Your money, jobs and map will be cleared.')) onNewGame(); };
   }
   const labelFor = (j) => ({ nails: 'Nails to Caldwell Crossing', letter: 'Letter to Jory Banks', strays: 'Rounded up strays',
     ridge: 'Scouted Kettle Ridge', water: 'Lake water for Doc Wilder', pelts: "Widow Sarrow's pelts",
     powder: 'Blasting powder, unjostled', mail: 'Mail for the Sheriff' }[j.id]);
 
-  let journalCtx = null;
   function toggleJournal(ctx) {
-    if (journal.hidden) { journalCtx = ctx; renderJournal(ctx); journal.hidden = false; $('jClose').focus({ preventScroll: true }); }
+    if (journal.hidden) { renderJournal(ctx); journal.hidden = false; $('jClose').focus({ preventScroll: true }); }
     else journal.hidden = true;
   }
   $('jClose').addEventListener('click', () => { journal.hidden = true; });

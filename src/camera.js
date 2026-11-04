@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { height } from './world.js';
 
 // Third person follow camera, ported from the prototype and pulled in for the smaller GLTF horse.
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
 export function createCamera() {
   const camera = new THREE.PerspectiveCamera(58, innerWidth / innerHeight, 0.3, 1400);
   const target = new THREE.Vector3();
@@ -44,7 +46,8 @@ export function createCamera() {
     target.set(cx, camY, cz);
     camera.position.lerp(target, Math.min(1, dt * 6));
     camera.lookAt(rider.x, rider.y + cur.look, rider.z);
-    const fov = 58 + Math.max(0, rider.speed - 10) * 0.5;
+    // Speed widens the view, unless the system asks for reduced motion.
+    const fov = 58 + (reduceMotion.matches ? 0 : Math.max(0, rider.speed - 10) * 0.5);
     if (Math.abs(camera.fov - fov) > 0.1) { camera.fov += (fov - camera.fov) * Math.min(1, dt * 4); camera.updateProjectionMatrix(); }
   }
 
