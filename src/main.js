@@ -22,7 +22,7 @@ sun.position.set(40, 60, 20);
 sun.castShadow = true;
 scene.add(sun);
 
-const grass = new THREE.TextureLoader().load('/assets/grass.jpg');
+const grass = new THREE.TextureLoader().load(`${import.meta.env.BASE_URL}assets/grass.jpg`);
 grass.wrapS = grass.wrapT = THREE.RepeatWrapping;
 grass.repeat.set(40, 40);
 grass.colorSpace = THREE.SRGBColorSpace;
@@ -32,7 +32,7 @@ ground.receiveShadow = true;
 scene.add(ground);
 
 let mixer;
-new GLTFLoader().load('/assets/Horse.glb', (gltf) => {
+new GLTFLoader().load(`${import.meta.env.BASE_URL}assets/Horse.glb`, (gltf) => {
   const horse = gltf.scene;
   horse.scale.setScalar(0.0095);
   horse.traverse((o) => { if (o.isMesh) o.castShadow = true; });
