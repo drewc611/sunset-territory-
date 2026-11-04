@@ -10,6 +10,11 @@ Original third person open world western, browser first. Not a Rockstar game and
 ## Current state
 prototype/index.html is a working single file beta (beta 0.2): procedural terrain, horse riding, day/night, towns, camps, lake, minimap, discovery stamps, touch and keyboard controls. It uses primitives for everything, which is why it looks like a toy. It is the reference for behavior, not for code structure.
 
+## Current state of src/ (Nov 4 2026)
+The prototype is ported into modules: world.js (heights, POIs), sky.js, terrain.js (textured splat shader), props.js (still primitives), horse.js (Horse.glb, speed driven gallop, rider on the morphed back), input.js, camera.js, hud.js, debug/perf.js, debug/benchmark.js. URL params: ?perf shows the perf HUD (also backtick or triple tap on the clock), ?bench runs the 90 s benchmark route, ?t=17.5 sets the start time.
+
+The phased plan with exit gates is docs/SCHEDULE.md. It puts the Phase 0 pipeline (phone preview, perf HUD, asset compression) before the job list below.
+
 ## The job
 Port the prototype into src/ as modules and replace the primitive look with real assets and materials, in this order:
 1. Horse: load Horse.glb (one clip named horse_A_). Scale about 0.0095, head faces +Z. Drive animation timeScale from speed. Rider is a separate rig parented to the horse at saddle height.
