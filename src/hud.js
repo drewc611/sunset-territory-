@@ -36,6 +36,13 @@ export function createHud() {
   let lastAct = '', lastFoot = null;
 
   // opts: { onFoot, action } where action is the label for the action button or null.
+  function stampText(title, sub) {
+    stamp.innerHTML = '';
+    stamp.append(title);
+    const sm = document.createElement('small'); sm.textContent = sub; stamp.append(sm);
+    stamp.classList.remove('show'); void stamp.offsetWidth; stamp.classList.add('show');
+  }
+
   function update(rider, clockH, opts = {}) {
     let here = null;
     for (const p of POIS) if (Math.hypot(rider.x - p.x, rider.z - p.z) < p.r) here = p;
@@ -86,6 +93,12 @@ export function createHud() {
       mctx.fillStyle = p.type === 'camp' ? '#ff8c3a' : p.type === 'town' ? '#c9a24d' : '#d8c7a1';
       mctx.fillRect(mx - 2, mz - 2, 4, 4);
     }
+    if (opts.target) {
+      // Job marker: a brass ring that pulses.
+      const tx = (opts.target.x / WORLD + 0.5) * MS, tz = (opts.target.z / WORLD + 0.5) * MS;
+      mctx.strokeStyle = '#c9a24d'; mctx.lineWidth = 2;
+      mctx.beginPath(); mctx.arc(tx, tz, 4 + (Math.sin(performance.now() * 0.006) + 1) * 1.5, 0, Math.PI * 2); mctx.stroke();
+    }
     const px = (rider.x / WORLD + 0.5) * MS, pz = (rider.z / WORLD + 0.5) * MS;
     mctx.save();
     mctx.translate(px, pz);
@@ -95,5 +108,5 @@ export function createHud() {
     mctx.restore();
   }
 
-  return { update, discovered };
+  return { update, discovered, stampText };
 }

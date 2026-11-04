@@ -69,7 +69,7 @@ export function createProps(scene, base) {
   grass.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   grass.frustumCulled = false;
   scene.add(grass);
-  let grassCell = null;
+  let grassCell = null, grassDensity = 1;
   function updateGrass(px, pz) {
     const key = Math.floor(px / 10) + ',' + Math.floor(pz / 10);
     if (key === grassCell) return;
@@ -79,7 +79,7 @@ export function createProps(scene, base) {
     for (let i = 0; i < cnt; i++) for (let j = 0; j < cnt; j++) {
       const gx = gx0 + i, gz = gz0 + j, r1 = hash(gx, gz), r2 = hash(gz, gx);
       const x = gx * GSP + r1 * GSP, z = gz * GSP + r2 * GSP, h = height(x, z);
-      if (h < -4 || h > 12 || nearPOI(x, z, 2) || r1 < 0.25) continue;
+      if (h < -4 || h > 12 || nearPOI(x, z, 2) || r1 < 0.25 || r2 > grassDensity) continue;
       dummy.position.set(x, h, z);
       dummy.rotation.set(0, r1 * 6.28, 0);
       const sc = 0.8 + r2 * 0.7;
@@ -139,6 +139,7 @@ export function createProps(scene, base) {
   const trees = [];     // {x, z, r} trunk circles for collision
   const rocksCol = [];  // {x, z, r}
   const buildings = []; // {x, z, w, d, rot} oriented footprints for collision
+  const towns = {};     // name -> street frame {x, z, ux, uz, nx, nz}, for placing people
 
   function instanced(variants, list, castShadow = true) {
     // list: [{v, x, y, z, ry, s}] → one InstancedMesh per variant.
@@ -226,6 +227,7 @@ export function createProps(scene, base) {
     const y0 = height(p.x, p.z);
     const ux = Math.cos(plan.axis), uz = Math.sin(plan.axis); // street direction
     const nx = -uz, nz = ux;                                   // across the street
+    towns[p.name] = { x: p.x, z: p.z, ux, uz, nx, nz };
     let seed = Math.floor(p.x * 13 + p.z * 7);
     for (const side of [-1, 1]) {
       plan.slots.forEach((t, k) => {
@@ -359,5 +361,14 @@ export function createProps(scene, base) {
     dustGeo.attributes.position.needsUpdate = true;
   }
 
-  return { update, trees, rocks: rocksCol, buildings };
+  function setGrassDensity(d) { grassDensity = d; grassCell = null; }
+
+  // Distance to the nearest campfire, for crackle volume.
+  function nearFire(x, z) {
+    let best = Infinity;
+    for (const f of fires) best = Math.min(best, Math.hypot(f.light.position.x - x, f.light.position.z - z));
+    return best;
+  }
+
+  return { update, trees, rocks: rocksCol, buildings, towns, material: propMat, setGrassDensity, nearFire };
 }

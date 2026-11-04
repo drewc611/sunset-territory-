@@ -79,6 +79,12 @@ export class Builder {
   }
 
   build() {
+    if (!this.parts.length) {
+      // An empty part (a skirt has no coat tail): same attributes, no vertices, so it still merges.
+      const e = new THREE.BufferGeometry();
+      for (const [k, n] of [['position', 3], ['normal', 3], ['color', 3], ['glow', 1], ['sway', 1]]) e.setAttribute(k, new THREE.BufferAttribute(new Float32Array(0), n));
+      return e;
+    }
     const g = mergeGeometries(this.parts, false);
     g.computeVertexNormals(); // non-indexed, so these are face normals: flat shading
     g.computeBoundingSphere();

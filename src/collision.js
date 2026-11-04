@@ -19,10 +19,11 @@ export function createCollision({ trees, rocks, buildings }) {
     }
   }
   for (const t of trees.concat(rocks)) insert({ kind: 0, x: t.x, z: t.z, r: t.r }, t.x - t.r, t.z - t.r, t.x + t.r, t.z + t.r);
-  for (const b of buildings) {
+  function addBox(b) {
     const hw = b.w / 2, hd = b.d / 2, ext = Math.hypot(hw, hd);
     insert({ kind: 1, x: b.x, z: b.z, hw, hd, c: Math.cos(b.rot), s: Math.sin(b.rot) }, b.x - ext, b.z - ext, b.x + ext, b.z + ext);
   }
+  buildings.forEach(addBox);
 
   const out = { x: 0, z: 0, hit: false };
   const seen = new Set();
@@ -77,5 +78,5 @@ export function createCollision({ trees, rocks, buildings }) {
     return height(x, z) < LAKE_Y - maxDepth;
   }
 
-  return { resolve, tooDeep };
+  return { resolve, tooDeep, addBox };
 }

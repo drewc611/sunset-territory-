@@ -60,12 +60,14 @@ export function createInput(canvas) {
   canvas.addEventListener('pointercancel', endDrag);
 
   // Contextual action (F, or the action button): dismount, mount, or whistle. H whistles.
-  const handlers = { action: [], whistle: [] };
+  const handlers = { action: [], whistle: [], journal: [] };
+  let invert = 1;
   addEventListener('keydown', (e) => {
     if (e.repeat) return;
     const k = e.key.toLowerCase();
     if (k === 'f') handlers.action.forEach((f) => f());
     if (k === 'h') handlers.whistle.forEach((f) => f());
+    if (k === 'j') handlers.journal.forEach((f) => f());
   });
   const actEl = document.getElementById('act');
   actEl.addEventListener('pointerdown', (e) => { e.preventDefault(); handlers.action.forEach((f) => f()); });
@@ -85,12 +87,16 @@ export function createInput(canvas) {
     let yaw = 0;
     if (keys.q) yaw += dt * 2;
     if (keys.e) yaw -= dt * 2;
-    yaw -= dragDelta * 0.006;
+    yaw -= dragDelta * 0.006 * invert;
     dragDelta = 0;
     state.camYawDelta = yaw;
     state.dragging = dragId !== null;
     return state;
   }
 
-  return { read, state, onAction: (f) => handlers.action.push(f), onWhistle: (f) => handlers.whistle.push(f) };
+  return {
+    read, state,
+    onAction: (f) => handlers.action.push(f), onWhistle: (f) => handlers.whistle.push(f), onJournal: (f) => handlers.journal.push(f),
+    setInvert: (v) => { invert = v ? -1 : 1; },
+  };
 }
