@@ -50,7 +50,11 @@ export function height(x, z) {
 export const LAKE = POIS.find((p) => p.type === 'lake');
 export const LAKE_Y = rawHeight(LAKE.x, LAKE.z) - 1.4;
 
+// Ground kept clear for the homestead you can buy, so trees and rocks don't grow there.
+export const HOME = { x: 70, z: 114, r: 11 };
+
 export function nearPOI(x, z, pad) {
+  if (Math.hypot(x - HOME.x, z - HOME.z) < HOME.r + pad) return true;
   for (const p of POIS) {
     if ((p.type === 'town' || p.type === 'camp' || p.type === 'lake') && Math.hypot(x - p.x, z - p.z) < p.r + pad) return true;
   }

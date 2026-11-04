@@ -17,8 +17,8 @@ import { createUi } from './ui.js';
 import { createAudio } from './audio.js';
 import { createQuality } from './quality.js';
 import { loadGame, saveGame, clearGame, loadSettings, saveSettings } from './save.js';
-import { house } from './models.js';
-import { POIS } from './world.js';
+import { house, hitchRail } from './models.js';
+import { POIS, HOME } from './world.js';
 
 const BASE = import.meta.env.BASE_URL;
 const DAY_SECONDS = 600; // a ten minute day: long enough for a job to fit in daylight
@@ -202,7 +202,6 @@ const ui = createUi({
 function openJournal() { ui.toggleJournal({ jobs, discovered: hud.discovered, settings }); }
 
 // The homestead appears once the deed is bought.
-const HOME = { x: 70, z: 114 };
 let homeBuilt = false;
 function buildHomestead() {
   if (homeBuilt) return;
@@ -216,6 +215,14 @@ function buildHomestead() {
   mesh.castShadow = mesh.receiveShadow = true;
   scene.add(mesh);
   collision.addBox({ x: HOME.x + Math.sin(rot) * m.zc, z: HOME.z + Math.cos(rot) * m.zc, w: m.w, d: m.d, rot });
+  // A rail out front to tie the horse to.
+  const rx = HOME.x + Math.sin(rot) * 5, rz = HOME.z + Math.cos(rot) * 5;
+  const rail = new THREE.Mesh(hitchRail(), props.material);
+  rail.position.set(rx, height(rx, rz), rz);
+  rail.rotation.y = rot + Math.PI / 2;
+  rail.castShadow = true;
+  scene.add(rail);
+  collision.addBox({ x: rx, z: rz, w: 3.2, d: 0.5, rot: rot + Math.PI / 2 });
 }
 
 jobs.on((ev) => {
