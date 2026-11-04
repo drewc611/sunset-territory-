@@ -33,11 +33,16 @@ const hud = createHud();
 const perf = createPerfHud(renderer, scene);
 const bench = createBenchmark();
 
+const params = new URLSearchParams(location.search);
+
 // Rider state, shared with camera, HUD and props.
 const rider = { x: -20, z: 10, y: 0, heading: Math.PI, speed: 0 };
 if (bench.active) Object.assign(rider, bench.start);
+if (params.has('at')) { // ?at=x,z,heading starts the rider somewhere specific, for screenshots
+  const [x, z, h] = params.get('at').split(',').map(Number);
+  Object.assign(rider, { x, z, heading: h || 0 });
+}
 rider.y = groundY(rider.x, rider.z);
-const params = new URLSearchParams(location.search);
 let clockH = params.has('t') ? Number(params.get('t')) % 24 : 6.5; // ?t=17.5 starts at 5:30 pm
 let running = false;
 

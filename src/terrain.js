@@ -51,7 +51,8 @@ export function createTerrain(scene, renderer, base) {
     }
     const lakeD = Math.hypot(x - LAKE.x, z - LAKE.z);
     const mud = h < LAKE_Y + 1.5 && lakeD < LAKE.r + 2 ? 1 : 0;
-    const snow = Math.min(1, Math.max(0, (h - 26) / 10));
+    // Patchy dusting on the very top of Kettle Ridge only.
+    const snow = Math.min(1, Math.max(0, (h - 40) / 10)) * (0.4 + vnoise(x * 0.09, z * 0.09) * 0.6);
     splat.set([Math.min(1, Math.max(0, dirt)), snow, mud], i * 3);
   }
   geo.setAttribute('biome', new THREE.BufferAttribute(biome, 3));
@@ -112,7 +113,7 @@ export function createTerrain(scene, renderer, base) {
         rockW = max(rockW, smoothstep(20.0, 30.0, vWPos.y) * 0.75);
         vec3 alb = mix(grassCol, dirtCol, smoothstep(0.25, 0.75, dirtW));
         alb = mix(alb, rockCol, rockW);
-        alb = mix(alb, vec3(0.75, 0.72, 0.68), vSplat.y * (1.0 - rockW * 0.5));
+        alb = mix(alb, vec3(0.62, 0.6, 0.57), smoothstep(0.2, 0.6, vSplat.y) * (1.0 - rockW * 0.6));
         alb *= mix(0.86, 1.14, clamp(macro * 0.5, 0.0, 1.0));
         diffuseColor.rgb *= alb;
         tHeight = mix(mix(gl, dl, dirtW), rl, rockW);`)

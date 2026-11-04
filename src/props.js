@@ -1,12 +1,12 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { WORLD, POIS, LAKE, LAKE_Y, hash, fbm, height, nearPOI } from './world.js';
+import { Builder, pine, cottonwood, juniper, boulder, slab, shop, house, church, waterTower, streetBits, hitchRail, well, tent, campfire, wagon } from './models.js';
 
-// Everything placed in the world, ported from the prototype with the same seeds so
-// the valley matches. Trees, rocks, buildings and tents are still primitives: job 3
-// swaps them for instanced GLTF models.
+// Everything placed in the world. Trees, rocks, towns and camps use the low poly
+// models in models.js; placement uses the prototype's seeds so the valley matches.
 
 const L = Math.PI; // legacy to physical light units, see sky.js
-const flat = { flatShading: true, roughness: 1 };
 const dummy = new THREE.Object3D();
 
 export function createProps(scene, base) {
@@ -91,142 +91,217 @@ export function createProps(scene, base) {
     grass.instanceMatrix.needsUpdate = true;
   }
 
-  // Trees.
-  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x4e3421, ...flat });
-  const leafMats = [0x3a5a2c, 0x4f6b2f, 0x6b7a33, 0x7a8a3c].map((c) => new THREE.MeshStandardMaterial({ color: c, ...flat }));
-  const tierGeo = new THREE.ConeGeometry(1, 1, 7), trunkGeo = new THREE.CylinderGeometry(0.3, 0.45, 1, 6);
-  const treeBatches = leafMats.map((m) => { const im = new THREE.InstancedMesh(tierGeo, m, 1800); im.castShadow = im.receiveShadow = true; return im; });
-  const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, 1200);
-  trunks.castShadow = true;
-  const tc = [0, 0, 0, 0];
-  let tk = 0;
-  const trees = []; // {x, z, r} trunk circles for collision later
-  for (let i = 0; i < 9000 && tk < 1200; i++) {
-    const x = (hash(i, 3) - 0.5) * WORLD * 0.9, z = (hash(i, 9) - 0.5) * WORLD * 0.9, h = height(x, z);
-    if (h < -3 || h > 26 || nearPOI(x, z, 7)) continue;
-    if (fbm(x * 0.02, z * 0.02 + 9) < 0.98) continue;
-    const s = 0.8 + hash(i, 5) * 1.1, b = Math.floor(hash(i, 13) * 4);
-    if (tc[b] >= 1800 - 3) continue;
-    dummy.rotation.set(0, hash(i, 7) * 6.28, 0);
-    dummy.position.set(x, h + 1.5 * s, z);
-    dummy.scale.set(s, 3 * s, s);
-    dummy.updateMatrix();
-    trunks.setMatrixAt(tk++, dummy.matrix);
-    trees.push({ x, z, r: 0.45 * s });
-    const tiers = 2 + Math.floor(hash(i, 17) * 2);
-    for (let t = 0; t < tiers; t++) {
-      const r = (2.6 - t * 0.6) * s, hh = (3.2 - t * 0.3) * s;
-      dummy.position.set(x, h + 2.4 * s + t * 1.9 * s + hh / 2, z);
-      dummy.scale.set(r, hh, r);
-      dummy.updateMatrix();
-      treeBatches[b].setMatrixAt(tc[b]++, dummy.matrix);
-    }
-  }
-  treeBatches.forEach((im, i) => { im.count = tc[i]; scene.add(im); });
-  trunks.count = tk;
-  scene.add(trunks);
-
-  // Rocks.
-  const rocks = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ color: 0x75685d, ...flat }), 500);
-  let ri = 0;
-  for (let i = 0; i < 3000 && ri < 500; i++) {
-    const x = (hash(i + 77, 2) - 0.5) * WORLD * 0.92, z = (hash(i + 77, 8) - 0.5) * WORLD * 0.92, h = height(x, z);
-    if (h < 10 && hash(i, 4) > 0.2) continue;
-    if (nearPOI(x, z, 4)) continue;
-    dummy.position.set(x, h + 0.3, z);
-    dummy.rotation.set(hash(i, 1) * 3, hash(i, 2) * 3, hash(i, 3));
-    const s = 0.6 + hash(i, 6) * 2.6;
-    dummy.scale.set(s, s * (0.6 + hash(i, 8) * 0.6), s);
-    dummy.updateMatrix();
-    rocks.setMatrixAt(ri++, dummy.matrix);
-  }
-  rocks.count = ri;
-  rocks.castShadow = rocks.receiveShadow = true;
-  scene.add(rocks);
-
-  // Clouds.
-  const cloudMat = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, fog: false });
+  // Clouds: lumpy flattened clusters, one merged mesh per cloud, drifting east.
+  const cloudMat = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.92, fog: false, flatShading: true });
   const clouds = [];
   for (let i = 0; i < 14; i++) {
-    const g = new THREE.Group();
-    const n = 3 + Math.floor(hash(i, 1) * 4);
+    const cb = new Builder();
+    const n = 4 + Math.floor(hash(i, 1) * 4);
     for (let j = 0; j < n; j++) {
-      const s = new THREE.Mesh(new THREE.SphereGeometry(6 + hash(i, j) * 8, 8, 6), cloudMat);
-      s.position.set((hash(j, i) - 0.5) * 26, (hash(i, j + 5) - 0.5) * 3, (hash(j + 3, i) - 0.5) * 12);
-      s.scale.y = 0.45;
-      g.add(s);
+      cb.add(new THREE.IcosahedronGeometry(6 + hash(i, j) * 8, 1), 0xffffff,
+        { x: (hash(j, i) - 0.5) * 30, y: (hash(i, j + 5) - 0.5) * 3, z: (hash(j + 3, i) - 0.5) * 14, sy: 0.42 },
+        { jitter: 2.5, seed: i * 10 + j });
     }
+    const g = new THREE.Mesh(cb.build(), cloudMat);
     g.position.set((hash(i, 22) - 0.5) * 600, 110 + hash(i, 23) * 40, (hash(i, 24) - 0.5) * 600);
     g.userData.v = 1.5 + hash(i, 25) * 2;
     scene.add(g);
     clouds.push(g);
   }
 
-  // Towns and camps.
-  const woodMat = new THREE.MeshStandardMaterial({ color: 0x8c6b45, ...flat });
-  const roofMat = new THREE.MeshStandardMaterial({ color: 0x3e2f27, ...flat });
-  const darkWood = new THREE.MeshStandardMaterial({ color: 0x5a4330, ...flat });
-  const canvasMat = new THREE.MeshStandardMaterial({ color: 0xcbbda2, ...flat });
-  const windowMat = new THREE.MeshStandardMaterial({ color: 0x2a2a30, emissive: 0xffb060, emissiveIntensity: 0 });
-  const buildings = []; // {x, z, w, d, rot} footprints for collision later
+  // Shared material for everything built in models.js: vertex colors, wind sway on
+  // foliage, and windows that light up at night.
+  const uNight = { value: 0 };
+  const propMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0 });
+  propMat.onBeforeCompile = (sh) => {
+    sh.uniforms.uTime = uTime;
+    sh.uniforms.uNight = uNight;
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', `#include <common>
+        attribute float glow; attribute float sway; varying float vGlow; uniform float uTime;`)
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
+        vGlow = glow;
+        #ifdef USE_INSTANCING
+          vec3 ip = vec3(instanceMatrix[3][0], instanceMatrix[3][1], instanceMatrix[3][2]);
+        #else
+          vec3 ip = vec3(0.0);
+        #endif
+        float ph = uTime * 1.3 + ip.x * 0.21 + ip.z * 0.17;
+        transformed.x += sin(ph) * sway * 0.22;
+        transformed.z += cos(ph * 0.8) * sway * 0.14;`);
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', `#include <common>
+        varying float vGlow; uniform float uNight;`)
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+        totalEmissiveRadiance += vec3(1.0, 0.6, 0.28) * vGlow * (0.05 + uNight * 2.2);`);
+  };
 
-  function building(x, z, w, d, h, rot) {
-    const g = new THREE.Group();
-    const add = (geo, mat, px, py, pz, ry = 0, shadow = true) => {
-      const m = new THREE.Mesh(geo, mat);
-      m.position.set(px, py, pz); m.rotation.y = ry;
-      m.castShadow = shadow; m.receiveShadow = true;
-      g.add(m); return m;
-    };
-    add(new THREE.BoxGeometry(w, h, d), woodMat, 0, h / 2, 0);
-    add(new THREE.ConeGeometry(Math.max(w, d) * 0.74, h * 0.55, 4), roofMat, 0, h + h * 0.27, 0, Math.PI / 4);
-    add(new THREE.BoxGeometry(w, 0.25, 2), darkWood, 0, 0.12, d / 2 + 1, 0, false);
-    add(new THREE.BoxGeometry(w, 0.18, 2.2), roofMat, 0, h * 0.62, d / 2 + 1);
-    [-w / 2 + 0.3, w / 2 - 0.3].forEach((px) => add(new THREE.BoxGeometry(0.2, h * 0.62, 0.2), darkWood, px, h * 0.31, d / 2 + 1.9));
-    add(new THREE.BoxGeometry(1, 2.2, 0.2), darkWood, 0, 1.1, d / 2 + 0.05, 0, false);
-    add(new THREE.BoxGeometry(0.9, 0.9, 0.2), windowMat, w / 4 + 0.4, 1.9, d / 2 + 0.05, 0, false);
-    g.position.set(x, height(x, z), z);
-    g.rotation.y = rot;
-    scene.add(g);
-    buildings.push({ x, z, w, d, rot });
+  const trees = [];     // {x, z, r} trunk circles for collision
+  const rocksCol = [];  // {x, z, r}
+  const buildings = []; // {x, z, w, d, rot} oriented footprints for collision
+
+  function instanced(variants, list, castShadow = true) {
+    // list: [{v, x, y, z, ry, s}] → one InstancedMesh per variant.
+    variants.forEach((geo, vi) => {
+      const mine = list.filter((it) => it.v === vi);
+      if (!mine.length) return;
+      const im = new THREE.InstancedMesh(geo, propMat, mine.length);
+      mine.forEach((it, k) => {
+        dummy.position.set(it.x, it.y, it.z);
+        dummy.rotation.set(it.rx || 0, it.ry || 0, 0);
+        dummy.scale.setScalar(it.s);
+        dummy.updateMatrix();
+        im.setMatrixAt(k, dummy.matrix);
+      });
+      im.castShadow = castShadow;
+      im.receiveShadow = true;
+      im.computeBoundingSphere();
+      scene.add(im);
+    });
+  }
+
+  // Trees: pines on the slopes and ridge, cottonwoods by water and low ground,
+  // junipers scattered on dry ground. Same clustering noise as the prototype.
+  const pines = [pine(11), pine(23), pine(37)];
+  const cottons = [cottonwood(5), cottonwood(17)];
+  const junipers = [juniper(3), juniper(8), juniper(13)];
+  const pineList = [], cottonList = [], juniperList = [];
+  for (let i = 0; i < 12000 && trees.length < 1400; i++) {
+    const x = (hash(i, 3) - 0.5) * WORLD * 0.92, z = (hash(i, 9) - 0.5) * WORLD * 0.92, h = height(x, z);
+    if (h < -4 || h > 30 || nearPOI(x, z, 7)) continue;
+    const r = hash(i, 5), cl = fbm(x * 0.02, z * 0.02 + 9);
+    const lakeD = Math.hypot(x - LAKE.x, z - LAKE.z);
+    let kind = null;
+    if (lakeD < LAKE.r + 22 && h < 6 && r > 0.55) kind = 'cotton';
+    else if (cl > 0.98 && h > 2) kind = 'pine';
+    else if (cl > 0.9 && h <= 2 && r > 0.6) kind = 'juniper';
+    else if (cl > 0.75 && r > 0.985) kind = 'juniper';
+    if (!kind) continue;
+    const s = 0.75 + hash(i, 7) * 0.55, ry = hash(i, 13) * 6.28;
+    if (kind === 'pine') { pineList.push({ v: i % 3, x, y: h - 0.2, z, ry, s }); trees.push({ x, z, r: 0.34 * s + 0.25 }); }
+    if (kind === 'cotton') { cottonList.push({ v: i % 2, x, y: h - 0.2, z, ry, s }); trees.push({ x, z, r: 0.5 * s + 0.25 }); }
+    if (kind === 'juniper') { juniperList.push({ v: i % 3, x, y: h - 0.1, z, ry, s: s * 0.9 }); trees.push({ x, z, r: 0.5 }); }
+  }
+  instanced(pines.map((p) => p.geo), pineList);
+  instanced(cottons.map((p) => p.geo), cottonList);
+  instanced(junipers.map((p) => p.geo), juniperList);
+
+  // Rocks: boulders everywhere above the valley floor, slabs on the ridge.
+  const boulders = [boulder(1), boulder(2, 0x9a8068), boulder(3, 0x7a6858)];
+  const slabs = [slab(4), slab(5, 0x8a7060)];
+  const boulderList = [], slabList = [];
+  for (let i = 0; i < 4000 && boulderList.length + slabList.length < 520; i++) {
+    const x = (hash(i + 77, 2) - 0.5) * WORLD * 0.92, z = (hash(i + 77, 8) - 0.5) * WORLD * 0.92, h = height(x, z);
+    if (h < 10 && hash(i, 4) > 0.2) continue;
+    if (nearPOI(x, z, 4)) continue;
+    const s = 0.6 + hash(i, 6) * 2.4, ry = hash(i, 2) * 6.28;
+    if (h > 20 && hash(i, 11) > 0.5) slabList.push({ v: i % 2, x, y: h - 0.3 * s, z, ry, s });
+    else boulderList.push({ v: i % 3, x, y: h + 0.1 * s, z, ry, s });
+    rocksCol.push({ x, z, r: 0.95 * s });
+  }
+  instanced(boulders, boulderList);
+  instanced(slabs, slabList);
+
+  // Towns: buildings in two rows along a main street, merged into one mesh per town.
+  const TOWN_PLAN = {
+    'Brass Hollow': { axis: 0.35, slots: [-21, -10.5, 0, 10.5, 21], church: 1, tower: true },
+    'Caldwell Crossing': { axis: 1.25, slots: [-16, -5.5, 5, 15.5], church: 0, tower: false },
+  };
+  const _mat4 = new THREE.Matrix4(), _q4 = new THREE.Quaternion(), _up = new THREE.Vector3(0, 1, 0);
+  function placed(geo, x, y, z, rot) {
+    const g = geo.clone();
+    _q4.setFromAxisAngle(_up, rot);
+    _mat4.compose(new THREE.Vector3(x, y, z), _q4, new THREE.Vector3(1, 1, 1));
+    g.applyMatrix4(_mat4);
+    return g;
+  }
+  function footprint(model, x, z, rot) {
+    // model.zc is the footprint center along the model's local z.
+    buildings.push({ x: x + Math.sin(rot) * model.zc, z: z + Math.cos(rot) * model.zc, w: model.w, d: model.d, rot });
   }
 
   function town(p) {
-    const n = 8;
-    for (let i = 0; i < n; i++) {
-      const a = (i / n) * Math.PI * 2, r = p.r * 0.55 + hash(i, p.x) * 6;
-      building(p.x + Math.cos(a) * r, p.z + Math.sin(a) * r, 6 + hash(i, 2) * 5, 6 + hash(i, 3) * 4, 4 + hash(i, 4) * 4, -a + Math.PI / 2);
+    const plan = TOWN_PLAN[p.name];
+    const parts = [];
+    const y0 = height(p.x, p.z);
+    const ux = Math.cos(plan.axis), uz = Math.sin(plan.axis); // street direction
+    const nx = -uz, nz = ux;                                   // across the street
+    let seed = Math.floor(p.x * 13 + p.z * 7);
+    for (const side of [-1, 1]) {
+      plan.slots.forEach((t, k) => {
+        seed++;
+        let model;
+        if (side === 1 && k === plan.church && plan.church >= 0 && p.name === 'Brass Hollow') model = church(seed);
+        else model = (k + (side > 0 ? 1 : 0)) % 3 === 2 ? house(seed) : shop(seed);
+        const off = 8.5;
+        const x = p.x + ux * t + nx * side * off, z = p.z + uz * t + nz * side * off;
+        // Face the street: local +z points along -side * n.
+        const rot = Math.atan2(-side * nx, -side * nz);
+        parts.push(placed(model.geo, x, height(x, z), z, rot));
+        footprint(model, x, z, rot);
+      });
     }
-    const y = height(p.x, p.z);
-    const well = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.3, 1.1, 10), new THREE.MeshStandardMaterial({ color: 0x8a8078, ...flat }));
-    well.position.set(p.x, y + 0.55, p.z);
-    well.castShadow = true;
-    scene.add(well);
-    const postGeo = new THREE.BoxGeometry(0.25, 1.2, 0.25);
-    for (let k = 0; k < 12; k++) {
-      const a = (k / 12) * 6.28;
-      const post = new THREE.Mesh(postGeo, darkWood);
-      post.position.set(p.x + Math.cos(a) * p.r * 0.35, y + 0.6, p.z + Math.sin(a) * p.r * 0.35);
-      scene.add(post);
+    // Street dressing.
+    const wl = well();
+    parts.push(placed(wl, p.x, y0, p.z, plan.axis));
+    buildings.push({ x: p.x, z: p.z, w: 2.6, d: 2.6, rot: plan.axis });
+    const rail = hitchRail();
+    for (const [t, side] of [[-6, 1], [6, -1], [14, 1], [-14, -1]]) {
+      const x = p.x + ux * t + nx * side * 4.6, z = p.z + uz * t + nz * side * 4.6;
+      const rot = Math.atan2(ux, uz) + Math.PI / 2;
+      parts.push(placed(rail, x, height(x, z), z, rot));
+      buildings.push({ x, z, w: 3.2, d: 0.5, rot });
     }
+    for (let k = 0; k < 4; k++) {
+      const t = -18 + k * 12, side = k % 2 ? 1 : -1;
+      const x = p.x + ux * t + nx * side * 5.6, z = p.z + uz * t + nz * side * 5.6;
+      parts.push(placed(streetBits(seed + k), x, height(x, z), z, k));
+      buildings.push({ x, z, w: 1.8, d: 1.8, rot: k });
+    }
+    if (plan.tower) {
+      const tw = waterTower();
+      const x = p.x - ux * 29, z = p.z - uz * 29;
+      parts.push(placed(tw.geo, x, height(x, z), z, 0));
+      buildings.push({ x, z, w: 3.2, d: 3.2, rot: 0 });
+    }
+    // Cottonwoods shading the street ends.
+    for (const t of [-30, 30]) for (const side of [-1, 1]) {
+      const x = p.x + ux * t + nx * side * 7, z = p.z + uz * t + nz * side * 7;
+      parts.push(placed(cottons[(t > 0) ? 0 : 1].geo, x, height(x, z) - 0.2, z, t + side));
+      trees.push({ x, z, r: 0.75 });
+    }
+    const merged = mergeGeometries(parts, false);
+    merged.computeBoundingSphere();
+    const mesh = new THREE.Mesh(merged, propMat);
+    mesh.castShadow = mesh.receiveShadow = true;
+    scene.add(mesh);
   }
 
   function camp(p) {
     const y = height(p.x, p.z);
+    const parts = [];
     for (let i = 0; i < 3; i++) {
-      const a = i * 2.1 + 0.5;
-      const tent = new THREE.Mesh(new THREE.ConeGeometry(2.6, 3.2, 4), canvasMat);
-      tent.position.set(p.x + Math.cos(a) * 6.5, y + 1.6, p.z + Math.sin(a) * 6.5);
-      tent.rotation.y = -a;
-      tent.castShadow = true;
-      scene.add(tent);
+      const a = i * 2.1 + 0.5, x = p.x + Math.cos(a) * 6.5, z = p.z + Math.sin(a) * 6.5;
+      // Open end faces the fire.
+      const rot = Math.atan2(p.x - x, p.z - z);
+      parts.push(placed(tent(i + Math.floor(p.x)), x, height(x, z), z, rot));
+      buildings.push({ x, z, w: 2.8, d: 3.4, rot });
     }
-    const logs = new THREE.Mesh(new THREE.TorusGeometry(1, 0.28, 6, 10), darkWood);
-    logs.rotation.x = Math.PI / 2;
-    logs.position.set(p.x, y + 0.2, p.z);
-    scene.add(logs);
-    const flame = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.5, 6), new THREE.MeshBasicMaterial({ color: 0xffa030 }));
-    flame.position.set(p.x, y + 0.95, p.z);
+    parts.push(placed(campfire(), p.x, y, p.z, 0));
+    if (p.name === "Drover's Camp") {
+      const x = p.x + 9, z = p.z - 4;
+      parts.push(placed(wagon(), x, height(x, z), z, 0.6));
+      buildings.push({ x, z, w: 2.0, d: 4.6, rot: 0.6 });
+    }
+    const merged = mergeGeometries(parts, false);
+    merged.computeBoundingSphere();
+    const mesh = new THREE.Mesh(merged, propMat);
+    mesh.castShadow = mesh.receiveShadow = true;
+    scene.add(mesh);
+    buildings.push({ x: p.x, z: p.z, w: 2.2, d: 2.2, rot: 0 });
+
+    const flame = new THREE.Mesh(new THREE.ConeGeometry(0.45, 1.3, 6), new THREE.MeshBasicMaterial({ color: 0xffa030 }));
+    flame.position.set(p.x, y + 0.75, p.z);
     scene.add(flame);
     const light = new THREE.PointLight(0xff8c3a, 2 * L, 34, 2);
     light.position.set(p.x, y + 2, p.z);
@@ -266,7 +341,7 @@ export function createProps(scene, base) {
     cloudMat.color.copy(sky.sunColor).lerp(tmp.copy(white), 0.5).multiplyScalar(0.35 + Math.max(0, elev) * 0.65);
     const fl = 1.2 - Math.max(0, elev);
     fires.forEach((f) => { f.light.intensity = (1.6 + Math.random() * 0.8) * fl * L; f.flame.scale.y = 0.8 + Math.random() * 0.5; });
-    windowMat.emissiveIntensity = night * 1.2;
+    uNight.value = night;
     clouds.forEach((cl) => { cl.position.x += cl.userData.v * dt; if (cl.position.x > 320) cl.position.x = -320; });
 
     updateGrass(rider.x, rider.z);
@@ -284,5 +359,5 @@ export function createProps(scene, base) {
     dustGeo.attributes.position.needsUpdate = true;
   }
 
-  return { update, trees, buildings };
+  return { update, trees, rocks: rocksCol, buildings };
 }
