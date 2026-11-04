@@ -1,8 +1,18 @@
 name: Deploy to GitHub Pages
 
-# One shared preview link: whichever branch was pushed last is what's live.
+# Deploys only when game files change on main, or when run by hand from the Actions tab.
+# Branch pushes and docs-only changes don't trigger it.
 on:
   push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'index.html'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.js'
+      - '.github/workflows/pages.yml'
   workflow_dispatch:
 
 permissions:
