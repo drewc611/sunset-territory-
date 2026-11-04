@@ -2,13 +2,13 @@
 // phones and High elsewhere, then watches frame times: if the median frame over
 // three seconds is slower than 18.5 ms it steps resolution down, then shadows.
 export const TIERS = {
-  low: { dpr: 1, shadows: false, shadowSize: 512, grass: 0.45 },
-  medium: { dpr: 1.5, shadows: true, shadowSize: 1024, grass: 0.75 },
-  high: { dpr: 2, shadows: true, shadowSize: 2048, grass: 1 },
+  low: { dpr: 1, shadows: false, shadowSize: 512, grass: 0.45, post: false },
+  medium: { dpr: 1.5, shadows: true, shadowSize: 1024, grass: 0.75, post: false },
+  high: { dpr: 2, shadows: true, shadowSize: 2048, grass: 1, post: true },
 };
 const ORDER = ['low', 'medium', 'high'];
 
-export function createQuality({ renderer, scene, sun, props, touch }) {
+export function createQuality({ renderer, scene, sun, props, touch, post, onResize }) {
   let mode = 'auto', tier = touch ? 'medium' : 'high', scale = 1;
   const samples = [];
   let timer = 0, cooldown = 4;
@@ -27,6 +27,8 @@ export function createQuality({ renderer, scene, sun, props, touch }) {
       if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
     }
     props.setGrassDensity(t.grass);
+    if (post) post.setEnabled(t.post);
+    if (onResize) onResize(); // pixel ratio changed, so render targets resize
   }
 
   function set(m) {

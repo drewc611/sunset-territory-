@@ -146,7 +146,7 @@ export function createProps(scene, base) {
       .replace('#include <common>', `#include <common>
         varying float vGlow; uniform float uNight;`)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
-        totalEmissiveRadiance += vec3(1.0, 0.6, 0.28) * vGlow * (0.05 + uNight * 2.2);`);
+        totalEmissiveRadiance += vec3(1.0, 0.6, 0.28) * vGlow * (0.05 + uNight * 4.0);`);
   };
 
   const trees = [];     // {x, z, r} trunk circles for collision
@@ -351,7 +351,7 @@ export function createProps(scene, base) {
   function update(dt, sky, rider) {
     uTime.value += dt;
     waterNormal.offset.set(uTime.value * 0.012, uTime.value * 0.007);
-    uSky.value.copy(scene.fog.color);
+    uSky.value.copy(sky.horizonTint);
 
     const elev = sky.elev, night = sky.night;
     cloudMat.color.copy(sky.sunColor).lerp(tmp.copy(white), 0.5).multiplyScalar((0.35 + Math.max(0, elev) * 0.65) * (1 - (sky.overcast || 0) * 0.4));
