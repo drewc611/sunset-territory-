@@ -495,3 +495,49 @@ export function snag(seed) {
   }
   return { geo: b.build(), height: H, trunk: 0.28 };
 }
+
+// ---------------------------------------------------------------- ranches
+
+// Barn: a tall red gabled barn with a hay door and a lean-to.
+export function barn(seed) {
+  const R = rng(seed), b = new Builder();
+  const w = 9, d = 12, h = 5.2, red = vary(0x8a3a2a, R, 0.05);
+  b.add(new THREE.BoxGeometry(w, h, d), red, { y: h / 2, z: -d / 2 }, { shade: 0.3 });
+  const pitch = 0.75, half = w / 2 / Math.cos(pitch);
+  for (const sgn of [-1, 1]) b.add(new THREE.BoxGeometry(half + 0.4, 0.2, d + 0.5), 0x4a3a2e, { x: sgn * w / 4, y: h + Math.tan(pitch) * w / 4, z: -d / 2, rz: -sgn * pitch });
+  const tri = new THREE.CylinderGeometry(0, w / 2 / Math.cos(0.01), Math.tan(pitch) * w / 2, 3, 1);
+  b.add(tri, red, { y: h + Math.tan(pitch) * w / 4, z: 0.02, sx: 1.15, sz: 0.06 });
+  b.add(new THREE.BoxGeometry(3.4, 3.6, 0.15), 0x3a2a1e, { y: 1.8, z: 0.08 });
+  b.add(new THREE.BoxGeometry(0.15, 3.6, 0.2), 0xd8c7a1, { y: 1.8, z: 0.12, rz: 0.75 });
+  b.add(new THREE.BoxGeometry(1.4, 1.2, 0.15), 0x3a2a1e, { y: h + 0.9, z: 0.1 });
+  b.add(new THREE.BoxGeometry(4, 3, d * 0.7), vary(0x7a5c3c, R), { x: w / 2 + 2, y: 1.5, z: -d / 2 }, { shade: 0.3 });
+  b.add(new THREE.BoxGeometry(4.4, 0.15, d * 0.75), 0x4a3a2e, { x: w / 2 + 2, y: 3.2, z: -d / 2, rz: -0.25 });
+  return { geo: b.build(), w: w + 4, d, zc: -d / 2, xc: 2 };
+}
+
+// Corral: a ring of posts with two rails.
+export function corral(r = 8) {
+  const b = new Builder(), n = 16;
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * 6.28, a2 = ((i + 1) / n) * 6.28;
+    b.add(new THREE.BoxGeometry(0.18, 1.4, 0.18), 0x5a4330, { x: Math.cos(a) * r, y: 0.7, z: Math.sin(a) * r });
+    if (i === 0) continue; // the gate
+    const mx = (Math.cos(a) + Math.cos(a2)) / 2 * r, mz = (Math.sin(a) + Math.sin(a2)) / 2 * r, len = 2 * r * Math.sin(Math.PI / n);
+    for (const y of [0.6, 1.15]) b.add(new THREE.BoxGeometry(len, 0.1, 0.08), 0x6a5038, { x: mx, y, z: mz, ry: -(a + a2) / 2 + Math.PI / 2 });
+  }
+  return b.build();
+}
+
+// Windmill: a lattice tower with a bladed wheel and a tail vane.
+export function windmill() {
+  const b = new Builder(), H = 9;
+  for (const [x, z] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) b.add(new THREE.BoxGeometry(0.14, H, 0.14), 0x6a6460, { x: x * 0.9, y: H / 2, z: z * 0.9, rx: -z * 0.09, rz: x * 0.09 });
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * 6.28;
+    b.add(new THREE.BoxGeometry(0.35, 1.3, 0.04), 0x8a8478, { x: Math.cos(a) * 0.9, y: H + 0.4 + Math.sin(a) * 0.9, z: 0.6, rz: a });
+  }
+  b.add(new THREE.BoxGeometry(0.1, 0.1, 2), 0x5a5450, { y: H + 0.4, z: -0.4 });
+  b.add(new THREE.BoxGeometry(0.06, 0.9, 1.1), 0x8a8478, { y: H + 0.4, z: -1.4 });
+  b.add(new THREE.CylinderGeometry(1.3, 1.3, 0.7, 12), 0x6a6a68, { y: 0.35, x: 2.4 });
+  return b.build();
+}

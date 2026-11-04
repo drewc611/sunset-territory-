@@ -1,4 +1,5 @@
 import { BIG, POIS } from './world.js';
+import { sites } from './sites.js';
 
 // The full map of the territory. Open with M or by tapping the minimap. Drag to pan,
 // scroll or pinch to zoom, or use the + and − buttons. Land you haven't ridden near
@@ -101,10 +102,10 @@ export function createWorldMap({ terrain, discovered, getPlayer, getTarget }) {
     // Places you've found.
     ctx.font = `${13 * dpr}px Vollkorn, Georgia, serif`;
     ctx.textAlign = 'center';
-    for (const p of POIS) {
+    for (const p of POIS.concat(sites())) {
       if (!discovered[p.name]) continue;
       const [sx, sz] = toScreen(p.x, p.z);
-      ctx.fillStyle = p.type === 'camp' ? '#ff8c3a' : p.type === 'town' ? '#c9a24d' : '#f0e4c4';
+      ctx.fillStyle = p.type === 'camp' ? '#ff8c3a' : p.type === 'town' ? '#c9a24d' : p.type === 'ranch' ? '#8a3a2a' : '#f0e4c4';
       ctx.strokeStyle = '#1b140d'; ctx.lineWidth = 1.5 * dpr;
       ctx.beginPath(); ctx.arc(sx, sz, 4 * dpr, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
       if (span < 4000 || p.type === 'town') {

@@ -1,3 +1,5 @@
+import { flattenSites } from './sites.js';
+
 // World definition and terrain height. Pure functions only, no three.js, so
 // collision, minimap, placement and terrain chunks all share them.
 //
@@ -61,7 +63,10 @@ export function masks(x, z) {
 
 // Terrain beyond the valley: rolling plains, mountain ranges, and red rock canyons
 // cut into mesas.
-export function bigHeight(x, z) {
+export function bigHeight(x, z) { return flattenSites(x, z, naturalHeight(x, z)); }
+
+// The land before settlements level it (used to choose where they go).
+export function naturalHeight(x, z) {
   const m = masks(x, z);
   const continent = (fbm(x * 0.00028 + 13.1, z * 0.00028 + 5.7) - 0.97) * 120;
   const hills = (fbm(x * 0.0035 + 3, z * 0.0035 + 9) - 0.97) * 28;

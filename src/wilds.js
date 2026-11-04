@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { hash, fbm, height, masks, nearPOI } from './world.js';
+import { nearSite, roadAt } from './sites.js';
 import { pine, cottonwood, juniper, boulder, slab, cactus, sage, snag } from './models.js';
 
 // Trees, brush and rocks for the territory beyond the valley, streamed in 128 m
@@ -83,7 +84,7 @@ export function createWilds(scene, material, { sampleHeight, collision }) {
       const r1 = hash(id * 0.013, 1.7), r2 = hash(id * 0.017, 2.3), r3 = hash(id * 0.019, 3.1);
       const x = x0 + (i + r1) * STEP, z = z0 + (j + r2) * STEP;
       if (Math.abs(x) < VALLEY && Math.abs(z) < VALLEY) continue;
-      if (nearPOI(x, z, 6)) continue;
+      if (nearPOI(x, z, 6) || nearSite(x, z, 10) || roadAt(x, z) > 0.05) continue;
       const ck = (i >> 2) * 8 + (j >> 2);
       const m = coarse[ck] || (coarse[ck] = masks(x, z));
       const h = hAt(x, z);

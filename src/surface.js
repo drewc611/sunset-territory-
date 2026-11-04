@@ -1,4 +1,5 @@
 import { POIS, LAKE, LAKE_Y, fbm, vnoise, masks, valleyBlend } from './world.js';
+import { roadAt, nearSite } from './sites.js';
 
 // What the ground is made of at a point: a grass tint, a dirt/snow/mud mix, and a
 // tint for dirt and rock (red in canyon country, pale in the desert). Pure, no
@@ -46,6 +47,10 @@ function bigSurface(x, z, h) {
   const k = 1 + (fbm(x * 0.02 + 50, z * 0.02) - 0.97) * 0.3;
   c = [c[0] * k, c[1] * k, c[2] * k];
   let dirt = Math.max(desert * 0.85, canyon * 0.9, (vnoise(x * 0.03 + 11, z * 0.03) - 0.66) * 2.4);
+  // Roads and the trodden ground of settlements.
+  dirt = Math.max(dirt, roadAt(x, z));
+  const site = nearSite(x, z, 4);
+  if (site) dirt = Math.max(dirt, 0.85 * cl(1.2 - Math.hypot(x - site.x, z - site.z) / (site.r + 4)));
   const snow = cl((h - 210) / 40) * (0.5 + vnoise(x * 0.02, z * 0.02) * 0.5);
   const tint = mix(mix([1, 1, 1], [1.15, 1.05, 0.88], desert), [1.45, 0.82, 0.62], canyon);
   return { c, dirt: cl(dirt), snow, mud: 0, tint };

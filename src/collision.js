@@ -26,6 +26,14 @@ export function createCollision({ trees, rocks, buildings }) {
     tagged.set(tag, []);
     for (const t of list) insert({ kind: 0, x: t.x, z: t.z, r: t.r, tag }, t.x - t.r, t.z - t.r, t.x + t.r, t.z + t.r, tag);
   }
+  function addBoxes(tag, list) {
+    removeTag(tag);
+    tagged.set(tag, []);
+    for (const b of list) {
+      const hw = b.w / 2, hd = b.d / 2, ext = Math.hypot(hw, hd);
+      insert({ kind: 1, x: b.x, z: b.z, hw, hd, c: Math.cos(b.rot), s: Math.sin(b.rot), tag }, b.x - ext, b.z - ext, b.x + ext, b.z + ext, tag);
+    }
+  }
   function removeTag(tag) {
     const keys = tagged.get(tag);
     if (!keys) return;
@@ -109,5 +117,5 @@ export function createCollision({ trees, rocks, buildings }) {
     return false;
   }
 
-  return { resolve, tooDeep, addBox, insideBox, addCircles, removeTag };
+  return { resolve, tooDeep, addBox, insideBox, addCircles, addBoxes, removeTag };
 }
