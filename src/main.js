@@ -12,6 +12,7 @@ import { createPerfHud } from './debug/perf.js';
 import { createBenchmark } from './debug/benchmark.js';
 import { createCollision } from './collision.js';
 import { createNpcs } from './npcs.js';
+import { createPeople } from './people.js';
 import { createJobs } from './jobs.js';
 import { createUi } from './ui.js';
 import { createAudio } from './audio.js';
@@ -47,7 +48,8 @@ const horse = createHorse(scene, BASE);
 const input = createInput(canvas);
 const hud = createHud(terrain);
 const npcs = createNpcs(scene, props.towns);
-const jobs = createJobs(scene, npcs, props.material);
+const people = createPeople(npcs);
+const jobs = createJobs(scene, npcs, props.material, people);
 const audio = createAudio();
 const ambient = createAmbient(scene, { forcedWeather: params.get('weather') }); // ?weather=rain for testing
 const settings = { sound: true, quality: 'auto', invertCam: false, bigControls: false, ...loadSettings() };
@@ -173,7 +175,7 @@ const focusOf = () => (player.mounted ? rider : foot);
 function talkable() {
   const f = focusOf();
   if (player.mounted && Math.abs(rider.speed) > 3) return null;
-  return npcs.nearest(f.x, f.z, player.mounted ? 4.2 : 3.2);
+  return people.nearest(f.x, f.z, player.mounted ? 4.2 : 3.2);
 }
 
 function act() {
@@ -193,7 +195,7 @@ input.onAction(act);
 input.onWhistle(whistle);
 input.onJournal(() => openJournal());
 document.getElementById('place').addEventListener('click', () => openJournal());
-if (import.meta.env.DEV || params.has('debug')) window.__game = { player, rider, foot, act, nearHorse, jobs, npcs };
+if (import.meta.env.DEV || params.has('debug')) window.__game = { player, rider, foot, act, nearHorse, jobs, npcs, people };
 
 function actionLabel() {
   if (talkable()) return 'TALK';
@@ -265,7 +267,7 @@ function persist() {
     mounted: player.mounted, clockH, dayIndex,
     discovered: Object.keys(hud.discovered),
     revealed: worldMap.revealedList(),
-    jobs: { money: jobs.state.money, done: jobs.state.done, active: jobs.state.active, deed: jobs.state.deed },
+    jobs: { money: jobs.state.money, done: jobs.state.done, active: jobs.state.active, deed: jobs.state.deed, genDone: jobs.state.genDone },
     intro: introSeen,
   });
 }

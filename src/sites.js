@@ -166,3 +166,50 @@ export function nearSite(x, z, pad = 0) {
   for (const s of nearby(x, z)) if (Math.hypot(x - s.x, z - s.z) < s.r + pad) return s;
   return null;
 }
+
+// ---------------------------------------------------------------- residents
+
+const GIVEN = ['Abel', 'Nora', 'Silas', 'Ruth', 'Eli', 'June', 'Wade', 'Hattie', 'Clem', 'Opal', 'Gus', 'Della', 'Tobias', 'Lula',
+  'Rufus', 'Etta', 'Jasper', 'Mabel', 'Ike', 'Vera', 'Hank', 'Pearl', 'Otis', 'Cora', 'Levi', 'Iris', 'Floyd', 'Winnie'];
+const FAMILY = ['Pratt', 'Kessler', 'Doyle', 'Mercer', 'Haskins', 'Vance', 'Rourke', 'Tull', 'Briggs', 'Calloway', 'Yates', 'Fenn',
+  'Wick', 'Sorensen', 'Ames', 'Hollister', 'Beck', 'Quill', 'Marsh', 'Dunning', 'Ostrander', 'Lyle', 'Penrose', 'Crane'];
+const ROLES = { town: ['merchant', 'sheriff', 'townswoman'], ranch: ['rancher', 'townswoman'], camp: ['miner'] };
+const TITLES = { sheriff: 'Marshal ', merchant: '', townswoman: '', rancher: '', miner: '' };
+
+let RESIDENTS = null, byId = null;
+
+// Each settlement's people: { id, name, role, site, x, z, face }.
+export function residents() {
+  if (RESIDENTS) return RESIDENTS;
+  RESIDENTS = []; byId = new Map();
+  const taken = new Set();
+  for (const s of sites()) {
+    const roles = ROLES[s.kind];
+    const seed = Math.floor(Math.abs(s.x * 3 + s.z * 5));
+    const ux = Math.cos(s.axis), uz = Math.sin(s.axis), nx = -uz, nz = ux;
+    roles.forEach((role, k) => {
+      let name;
+      for (let t = 0; t < 30 && (!name || taken.has(name)); t++) {
+        name = TITLES[role] + GIVEN[Math.floor(hash(seed + k * 7 + t, 6.1) * GIVEN.length)] + ' ' + FAMILY[Math.floor(hash(seed + k * 11 + t, 6.7) * FAMILY.length)];
+      }
+      taken.add(name);
+      let x, z, face;
+      if (s.kind === 'town') {
+        const side = k % 2 ? 1 : -1, t = (k - 1) * 9;
+        x = s.x + ux * t + nx * side * 5.4; z = s.z + uz * t + nz * side * 5.4;
+        face = Math.atan2(-side * nx, -side * nz);
+      } else if (s.kind === 'ranch') {
+        x = s.x + nx * 2 + ux * (k * 3 - 1.5); z = s.z + nz * 2 + uz * (k * 3 - 1.5);
+        face = Math.atan2(-nx, -nz);
+      } else {
+        x = s.x + Math.cos(s.axis + 3.4) * 3.2; z = s.z + Math.sin(s.axis + 3.4) * 3.2;
+        face = Math.atan2(s.x - x, s.z - z);
+      }
+      const r = { id: `r:${s.name}:${k}`, name, role, site: s.name, x, z, face };
+      RESIDENTS.push(r); byId.set(r.id, r);
+    });
+  }
+  return RESIDENTS;
+}
+export function resident(id) { residents(); return byId.get(id) || null; }
+export function residentsOf(siteName) { return residents().filter((r) => r.site === siteName); }

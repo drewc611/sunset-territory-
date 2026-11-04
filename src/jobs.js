@@ -80,18 +80,78 @@ function cowGeo() {
   return b.build();
 }
 
-export function createJobs(scene, npcs, propMat) {
+// --- generated work ---------------------------------------------------------
+// Once someone's written jobs are done (or for the territory's generated folk),
+// they offer deliveries to people in other settlements, paid by distance.
+const CARGO = [
+  ['a crate of tinned peaches', false], ['a saddle needing new stitching', false], ['the week\u2019s newspapers', false],
+  ['a sack of seed corn', false], ['a box of rifle cartridges', false], ['a doctor\u2019s bag', false], ['a mended harness', false],
+  ['a crate of lamp glass', true], ['a case of whiskey', true], ['a mantel clock', true], ['eggs, four dozen', true],
+];
+const OFFERS = [
+  (c, to, where) => `I've got ${c} that needs to get to ${to} at ${where}. Pays by the mile.`,
+  (c, to, where) => `${to} out at ${where} sent for ${c}. Can you carry it?`,
+  (c, to, where) => `Would you run ${c} over to ${where}? ${to} is expecting it.`,
+];
+const THANKS = ['Right on time. Here, for your trouble.', 'Obliged. That saves me a ride.', 'Good. I was starting to worry. Here\u2019s your pay.', 'Much appreciated. Come by again.'];
+const LINES_BY_ROLE = {
+  merchant: 'Store\u2019s open till dark. After that, knock.', sheriff: 'Keep your iron holstered in town and we\u2019ll get along.',
+  townswoman: 'Not many new faces come through here.', rancher: 'Grass is good this year. Cattle are fat.', miner: 'Color in the creek, but not much of it.',
+};
+const hashS = (str) => {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  // Final mix so ids that differ by one character land far apart.
+  h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b); h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35); h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+};
+
+export function createJobs(scene, npcs, propMat, people = null) {
   const state = { money: 0, done: [], active: null, deed: false };
   const cowMesh = cowGeo();
   const cows = [];
   let listeners = [];
   const emit = (ev) => listeners.forEach((f) => f(ev));
 
-  const job = (id) => JOBS.find((j) => j.id === id);
+  const gen = new Map(); // generated jobs by id
+  const job = (id) => JOBS.find((j) => j.id === id) || gen.get(id);
   const isDone = (id) => state.done.includes(id);
+  const who = (id) => (people ? people.get(id) : npcs.byId[id]);
+  state.genDone = state.genDone || {};
+
+  // The next generated delivery from this person: deterministic per giver and count.
+  function genJobFor(giverId) {
+    if (!people) return null;
+    const n = state.genDone[giverId] || 0;
+    const id = `g:${giverId}:${n}`;
+    if (gen.has(id)) return gen.get(id);
+    const g = who(giverId);
+    // Someone else, 800 m to 6 km away, preferring other settlements.
+    const r = hashS(id);
+    // One person per settlement, the nearest six settlements, then pick someone.
+    const bySite = new Map();
+    for (const p of people.all()) {
+      if (p.id === giverId || p.site === g.site) continue;
+      const d = Math.hypot(p.x - g.x, p.z - g.z);
+      if (d < 800 || d > 6000) continue;
+      const list = bySite.get(p.site) || []; list.push([p, d]); bySite.set(p.site, list);
+    }
+    const near = [...bySite.values()].sort((a, b) => a[0][1] - b[0][1]).slice(0, 6);
+    if (!near.length) return null;
+    const pickSite = near[Math.floor(r * near.length)];
+    const [to, dist] = pickSite[Math.floor(hashS(id + 'p') * pickSite.length)];
+    const [cargoText, fragile] = CARGO[Math.floor(hashS(id + 'c') * CARGO.length)];
+    const where = to.site;
+    const pay = Math.round(4 + (dist / 1000) * (fragile ? 5 : 3.5));
+    const offer = OFFERS[Math.floor(hashS(id + 'o') * OFFERS.length)](cargoText, to.name, where) + (fragile ? ' Easy on it: no galloping.' : '');
+    const j = { id, giver: giverId, kind: fragile ? 'careful' : 'deliver', to: to.id, pay, offer, generated: true, cargo: cargoText,
+      thanks: THANKS[Math.floor(hashS(id + 't') * THANKS.length)], fail: `You hear ${cargoText} break at a gallop. Ride back to ${g.name} and own up.` };
+    gen.set(id, j);
+    return j;
+  }
 
   function offerFor(personId) {
-    return JOBS.find((j) => j.giver === personId && !isDone(j.id) && (!j.after || j.after.every(isDone)));
+    return JOBS.find((j) => j.giver === personId && !isDone(j.id) && (!j.after || j.after.every(isDone))) || genJobFor(personId);
   }
 
   function spawnStrays(j) {
@@ -113,8 +173,8 @@ export function createJobs(scene, npcs, propMat) {
     const a = state.active;
     if (!a) return null;
     const j = job(a.id);
-    const back = npcs.byId[j.giver];
-    if (j.kind === 'deliver' || j.kind === 'careful') { const p = npcs.byId[j.to]; return { x: p.x, z: p.z, label: `${cargo(j)} for ${p.name}` }; }
+    const back = who(j.giver);
+    if (j.kind === 'deliver' || j.kind === 'careful') { const p = who(j.to); return { x: p.x, z: p.z, label: j.generated ? `Deliver to ${p.name}, ${p.site || 'the valley'}` : `${cargo(j)} for ${p.name}` }; }
     if (a.stage === 'report') return { x: back.x, z: back.z, label: `Report to ${back.name}` };
     if (j.kind === 'scout') {
       const p = place(j.place);
@@ -132,14 +192,15 @@ export function createJobs(scene, npcs, propMat) {
   const cargo = (j) => ({ nails: 'Nails', letter: 'Letter', pelts: 'Pelts', powder: 'Powder', mail: 'Mail' }[j.id] || 'Parcel');
 
   function accept(j) {
-    state.active = { id: j.id, stage: 'go' };
+    state.active = { id: j.id, stage: 'go', job: j.generated ? j : undefined };
     if (j.kind === 'strays') spawnStrays(j);
     emit({ type: 'accepted', job: j });
   }
 
   function pay(j) {
     state.money += j.pay;
-    state.done.push(j.id);
+    if (j.generated) state.genDone[j.giver] = (state.genDone[j.giver] || 0) + 1;
+    else state.done.push(j.id);
     state.active = null;
     clearCows();
     emit({ type: 'paid', job: j });
@@ -147,7 +208,7 @@ export function createJobs(scene, npcs, propMat) {
 
   // Talking to someone. Returns a dialogue: { name, text, choices: [{label, run}] }.
   function talk(personId) {
-    const p = npcs.byId[personId];
+    const p = who(personId);
     const a = state.active, aj = a && job(a.id);
     // Finishing a delivery here.
     if (aj && (aj.kind === 'deliver' || aj.kind === 'careful') && aj.to === personId) {
@@ -178,7 +239,7 @@ export function createJobs(scene, npcs, propMat) {
         choices: [{ label: 'Take the job', run: () => accept(offer) }, { label: 'Not now', run: () => {} }],
       };
     }
-    let line = LINES[personId];
+    let line = LINES[personId] || LINES_BY_ROLE[p.role] || 'Afternoon.';
     if (a) line += '  Finish your other job first.';
     else if (personId === 'ida' && !state.deed) line += `  I've a homestead deed for sale, $${DEED_PRICE}, when you've the money.`;
     return { name: p.name, text: line, choices: [{ label: 'Ride on', run: () => {} }] };
@@ -233,12 +294,14 @@ export function createJobs(scene, npcs, propMat) {
 
   function load(saved) {
     if (!saved) return;
+    state.genDone = saved.genDone && typeof saved.genDone === 'object' ? saved.genDone : {};
+    if (saved.active && saved.active.job && saved.active.job.generated) gen.set(saved.active.job.id, saved.active.job);
     state.money = saved.money | 0;
     state.done = Array.isArray(saved.done) ? saved.done.filter((id) => job(id)) : [];
     state.deed = !!saved.deed;
     const a = saved.active;
     if (a && job(a.id) && !isDone(a.id)) {
-      state.active = { id: a.id, stage: a.stage === 'report' ? 'report' : 'go' };
+      state.active = { id: a.id, stage: a.stage === 'report' ? 'report' : 'go', job: job(a.id).generated ? job(a.id) : undefined };
       if (job(a.id).kind === 'strays' && state.active.stage === 'go') spawnStrays(job(a.id));
     }
   }
