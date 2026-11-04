@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { WORLD, POIS, LAKE, LAKE_Y, hash, fbm, height, nearPOI } from './world.js';
+import { WORLD, POIS, LAKE, LAKE_Y, hash, fbm, height, nearPOI, valleyBlend } from './world.js';
+import { surface } from './surface.js';
 import { sandArch, mineAdit, lookoutTower, missionRuin, Builder, pine, cottonwood, juniper, boulder, slab, shop, house, church, waterTower, streetBits, hitchRail, well, tent, campfire, wagon } from './models.js';
 
 // Everything placed in the world. Trees, rocks, towns and camps use the low poly
@@ -9,7 +10,7 @@ import { sandArch, mineAdit, lookoutTower, missionRuin, Builder, pine, cottonwoo
 const L = Math.PI; // legacy to physical light units, see sky.js
 const dummy = new THREE.Object3D();
 
-export function createProps(scene, base) {
+export function createProps(scene, base, sampleHeight = null) {
   const uTime = { value: 0 };
   const windows = [];
   const fires = [];
@@ -89,10 +90,28 @@ export function createProps(scene, base) {
     grassCell = key;
     let n = 0;
     const gx0 = Math.floor((px - GR) / GSP), gz0 = Math.floor((pz - GR) / GSP), cnt = Math.floor(GR * 2 / GSP);
+    // How grassy the ground is, on a 10 m grid: the valley's height rule inside it,
+    // the surface's dirt and snow out in the territory.
+    const coarse = new Map();
+    const grassy = (x, z, h) => {
+      const k = Math.floor(x / 10) * 100003 + Math.floor(z / 10);
+      let g = coarse.get(k);
+      if (g === undefined) {
+        const w = valleyBlend(x, z);
+        const inValley = h >= -4 && h <= 12 ? 1 : 0;
+        let out = 0;
+        if (w > 0) { const sf = surface(x, z, h); out = Math.max(0, 1 - sf.dirt * 1.4 - sf.snow * 2); }
+        g = inValley * (1 - w) + out * w;
+        coarse.set(k, g);
+      }
+      return g;
+    };
     for (let i = 0; i < cnt; i++) for (let j = 0; j < cnt; j++) {
       const gx = gx0 + i, gz = gz0 + j, r1 = hash(gx, gz), r2 = hash(gz, gx);
-      const x = gx * GSP + r1 * GSP, z = gz * GSP + r2 * GSP, h = height(x, z);
-      if (h < -4 || h > 12 || nearPOI(x, z, 2) || r1 < 0.25 || r2 > grassDensity) continue;
+      const x = gx * GSP + r1 * GSP, z = gz * GSP + r2 * GSP;
+      if (r1 < 0.25 || r2 > grassDensity) continue;
+      const h = (sampleHeight && sampleHeight(x, z)) ?? height(x, z);
+      if (r1 > 0.25 + grassy(x, z, h) * 0.75 || nearPOI(x, z, 2)) continue;
       dummy.position.set(x, h, z);
       dummy.rotation.set(0, r1 * 6.28, 0);
       const sc = 0.8 + r2 * 0.7;

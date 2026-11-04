@@ -9,6 +9,7 @@ export const TIERS = {
 const ORDER = ['low', 'medium', 'high'];
 
 export function createQuality({ renderer, scene, sun, props, touch, post, terrain, sky, onResize }) {
+  const tierListeners = [];
   let mode = 'auto', tier = touch ? 'medium' : 'high', scale = 1;
   const samples = [];
   let timer = 0, cooldown = 4;
@@ -29,6 +30,7 @@ export function createQuality({ renderer, scene, sun, props, touch, post, terrai
     props.setGrassDensity(t.grass);
     if (post) post.setEnabled(t.post);
     if (terrain) terrain.setTier(tier); // how many terrain chunks stream around you
+    tierListeners.forEach((f) => f(tier));
     if (sky) sky.setFogFar(t.fog);     // and how far you see before the haze
     if (onResize) onResize(); // pixel ratio changed, so render targets resize
   }
@@ -56,5 +58,5 @@ export function createQuality({ renderer, scene, sun, props, touch, post, terrai
     }
   }
 
-  return { set, record, apply, get tier() { return tier; }, get scale() { return scale; } };
+  return { set, record, apply, onTier: (f) => { tierListeners.push(f); f(tier); }, get tier() { return tier; }, get scale() { return scale; } };
 }

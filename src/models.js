@@ -454,3 +454,44 @@ export function missionRuin() {
     boxes: [{ x: 0, z: -7, w: 14, d: 1 }, { x: -7, z: -2, w: 1, d: 9 }, { x: 7, z: -4, w: 1, d: 5 }, { x: -4.5, z: 3, w: 5, d: 1 }, { x: 5.5, z: 2.5, w: 3, d: 1 }],
   };
 }
+
+// ---------------------------------------------------------------- desert
+
+// Tall ribbed cactus with one or two arms.
+export function cactus(seed) {
+  const R = rng(seed), b = new Builder();
+  const H = 3.2 + R() * 2.4, green = 0x5a7a3a;
+  b.add(new THREE.CylinderGeometry(0.26, 0.3, H, 8), green, { y: H / 2 }, { shade: 0.35, jitter: 0.04, seed });
+  b.add(new THREE.SphereGeometry(0.26, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2), green, { y: H });
+  const arms = 1 + Math.floor(R() * 2);
+  for (let i = 0; i < arms; i++) {
+    const side = i === 0 ? 1 : -1, y = H * (0.35 + R() * 0.25), up = 0.8 + R() * 1.0;
+    b.add(new THREE.CylinderGeometry(0.17, 0.17, 0.7, 7), green, { x: side * 0.45, y, rz: Math.PI / 2 }, { shade: 0.2 });
+    b.add(new THREE.CylinderGeometry(0.17, 0.18, up, 7), green, { x: side * 0.78, y: y + up / 2 - 0.05 }, { shade: 0.25 });
+    b.add(new THREE.SphereGeometry(0.17, 7, 3, 0, Math.PI * 2, 0, Math.PI / 2), green, { x: side * 0.78, y: y + up - 0.05 });
+  }
+  return { geo: b.build(), height: H, trunk: 0.3 };
+}
+
+// Low sage brush: a cluster of grey-green lumps.
+export function sage(seed) {
+  const R = rng(seed), b = new Builder();
+  for (let i = 0; i < 4; i++) {
+    const a = R() * 6.28, d = R() * 0.5;
+    b.add(new THREE.IcosahedronGeometry(0.4 + R() * 0.25, 0), i % 2 ? 0x7a8462 : 0x8a8a6a,
+      { x: Math.cos(a) * d, y: 0.3, z: Math.sin(a) * d, sy: 0.7 }, { jitter: 0.15, seed: seed + i, shade: 0.4, sway: 0.2 });
+  }
+  return { geo: b.build(), height: 0.8, trunk: 0 };
+}
+
+// Dead snag: a bare, bleached trunk with two broken limbs.
+export function snag(seed) {
+  const R = rng(seed), b = new Builder();
+  const H = 4 + R() * 3, bone = 0x9a8a78;
+  b.add(new THREE.CylinderGeometry(0.1, 0.28, H, 6), bone, { y: H / 2, rz: (R() - 0.5) * 0.15 }, { shade: 0.4, jitter: 0.05, seed });
+  for (let i = 0; i < 2; i++) {
+    const y = H * (0.45 + i * 0.25), a = R() * 6.28;
+    b.add(new THREE.CylinderGeometry(0.04, 0.09, 1.4, 5), bone, { x: Math.cos(a) * 0.5, y: y + 0.3, z: Math.sin(a) * 0.5, rx: Math.sin(a) * 0.9, rz: -Math.cos(a) * 0.9 });
+  }
+  return { geo: b.build(), height: H, trunk: 0.28 };
+}

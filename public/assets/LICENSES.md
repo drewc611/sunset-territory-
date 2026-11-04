@@ -6,3 +6,4 @@ Rule for every future asset: CC0, MIT, or made for this project. Record source a
 - Trees, rocks, buildings, tents, wagon, clouds (src/models.js): low poly models built in code for this project, no license restriction.
 - All sound and music (src/audio.js): synthesized at runtime for this project, no audio files, no license restriction.
 - Townsfolk and cattle (src/character.js, src/jobs.js): built in code for this project, no license restriction.
+- Cactus, sage, dead snags (src/models.js) and the 20 km territory's terrain: generated in code for this project, no license restriction.

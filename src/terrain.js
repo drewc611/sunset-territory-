@@ -152,6 +152,7 @@ export function createTerrain(scene, renderer, base) {
       const mesh = makeMesh(r);
       if (entry.mesh) { scene.remove(entry.mesh); entry.mesh.geometry.dispose(); }
       entry.mesh = mesh; entry.dropKey = dropKey; entry.loading = false;
+      if (kind === 'n') entry.pos = r.pos; // kept for sampleHeight
       if (entry.wantDrop !== dropKey) dropBox = null; // the near square moved while this built: recheck
       scene.add(mesh);
       applyVisibility();
@@ -214,7 +215,22 @@ export function createTerrain(scene, renderer, base) {
     });
   }
 
+  // Height of the drawn surface at (x, z), from a loaded near chunk, or null.
+  // Interpolates on the same triangles the mesh uses, so things sit on the ground.
+  const step = NEAR / NEAR_RES, n = NEAR_RES + 1;
+  function sampleHeight(x, z) {
+    const cx = Math.floor(x / NEAR), cz = Math.floor(z / NEAR);
+    const c = chunks.get(key('n', cx, cz));
+    if (!c || !c.pos) return null;
+    const fx = (x - cx * NEAR) / step, fz = (z - cz * NEAR) / step;
+    const i = Math.min(NEAR_RES - 1, Math.floor(fx)), j = Math.min(NEAR_RES - 1, Math.floor(fz));
+    const u = fx - i, v = fz - j, p = c.pos;
+    const ya = p[(j * n + i) * 3 + 1], yb = p[(j * n + i + 1) * 3 + 1], yc = p[((j + 1) * n + i) * 3 + 1], yd = p[((j + 1) * n + i + 1) * 3 + 1];
+    // Triangles (a, c, b) and (b, c, d), split along the b to c diagonal.
+    return u + v <= 1 ? ya + (yb - ya) * u + (yc - ya) * v : yd + (yc - yd) * (1 - u) + (yb - yd) * (1 - v);
+  }
+
   function map(cx, cz, span, px) { return request({ type: 'map', cx, cz, span, px }); }
 
-  return { update, setTier, settle, map, material: mat, chunkCount: () => chunks.size };
+  return { update, setTier, settle, map, sampleHeight, material: mat, chunkCount: () => chunks.size };
 }

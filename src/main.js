@@ -18,6 +18,7 @@ import { createAudio } from './audio.js';
 import { createQuality } from './quality.js';
 import { createAmbient } from './ambient.js';
 import { createPost } from './post.js';
+import { createWilds } from './wilds.js';
 import { loadGame, saveGame, clearGame, loadSettings, saveSettings } from './save.js';
 import { house, hitchRail } from './models.js';
 import { POIS, HOME } from './world.js';
@@ -39,7 +40,7 @@ const cam = createCamera();
 const { camera, snap: snapCamera } = cam;
 const sky = createSky(scene, renderer, { shadowSize: 1024 });
 const terrain = createTerrain(scene, renderer, BASE);
-const props = createProps(scene, BASE);
+const props = createProps(scene, BASE, terrain.sampleHeight);
 const horse = createHorse(scene, BASE);
 const input = createInput(canvas);
 const hud = createHud(terrain);
@@ -73,6 +74,8 @@ let running = false;
 
 const collision = createCollision({ trees: props.trees.concat(npcs.circles), rocks: props.rocks, buildings: props.buildings });
 const updateCamera = (dt, f, c, onFoot) => cam.update(dt, f, c, onFoot, collision);
+const wilds = createWilds(scene, props.material, { sampleHeight: terrain.sampleHeight, collision });
+quality.onTier((t) => wilds.setTier(t));
 const HORSE_R = 0.85, FOOT_R = 0.32;
 
 function resize() {
@@ -335,6 +338,7 @@ renderer.setAnimationLoop((now) => {
   s.overcast = ambient.weather.overcast;
   ambient.update(dt, { clockH, dayIndex, night: s.night, camera });
   terrain.update(focus.x, focus.z);
+  wilds.update(focus.x, focus.z);
   props.update(dt, s, focus);
   npcs.update(dt, focus);
   jobs.update(dt, focus, player.mounted, rider.speed, s.night);
@@ -365,6 +369,7 @@ function start() {
 
 const startBtn = document.getElementById('start');
 Promise.all([horse.ready, terrain.settle(rider.x, rider.z)]).then(() => {
+  wilds.settle(rider.x, rider.z);
   // Compile shaders before the first frame so riding doesn't hitch on start.
   horse.root.position.set(rider.x, rider.y, rider.z);
   snapCamera(rider);

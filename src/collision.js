@@ -8,15 +8,34 @@ const CELL = 8;
 export function createCollision({ trees, rocks, buildings }) {
   const grid = new Map();
   const key = (cx, cz) => cx * 73856093 ^ cz * 19349663;
-  function insert(shape, minX, minZ, maxX, maxZ) {
+  const tagged = new Map(); // tag -> [grid keys], for removing streamed shapes
+  function insert(shape, minX, minZ, maxX, maxZ, tag) {
     for (let cx = Math.floor(minX / CELL); cx <= Math.floor(maxX / CELL); cx++) {
       for (let cz = Math.floor(minZ / CELL); cz <= Math.floor(maxZ / CELL); cz++) {
         const k = key(cx, cz);
         let list = grid.get(k);
         if (!list) grid.set(k, (list = []));
         list.push(shape);
+        if (tag) tagged.get(tag).push(k);
       }
     }
+  }
+  // Streamed circles (territory trees and rocks), added and removed by tag.
+  function addCircles(tag, list) {
+    removeTag(tag);
+    tagged.set(tag, []);
+    for (const t of list) insert({ kind: 0, x: t.x, z: t.z, r: t.r, tag }, t.x - t.r, t.z - t.r, t.x + t.r, t.z + t.r, tag);
+  }
+  function removeTag(tag) {
+    const keys = tagged.get(tag);
+    if (!keys) return;
+    for (const k of new Set(keys)) {
+      const list = grid.get(k);
+      if (!list) continue;
+      const kept = list.filter((sh) => sh.tag !== tag);
+      if (kept.length) grid.set(k, kept); else grid.delete(k);
+    }
+    tagged.delete(tag);
   }
   for (const t of trees.concat(rocks)) insert({ kind: 0, x: t.x, z: t.z, r: t.r }, t.x - t.r, t.z - t.r, t.x + t.r, t.z + t.r);
   function addBox(b) {
@@ -90,5 +109,5 @@ export function createCollision({ trees, rocks, buildings }) {
     return false;
   }
 
-  return { resolve, tooDeep, addBox, insideBox };
+  return { resolve, tooDeep, addBox, insideBox, addCircles, removeTag };
 }
