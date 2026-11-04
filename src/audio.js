@@ -4,7 +4,7 @@
 // that plays a slow original progression, louder in towns and at dusk.
 
 export function createAudio() {
-  let ctx = null, master = null, musicBus = null, sfx = null, windGain = null, windFilter = null, cricketGain = null;
+  let ctx = null, master = null, musicBus = null, sfx = null, windGain = null, windFilter = null, cricketGain = null, rainGain = null;
   let noise = null, muted = false;
   const notes = {};
   let nextStep = 0, nextBird = 0, nextCrackle = 0, nextNote = 0, chordIdx = 0, noteIdx = 0;
@@ -37,6 +37,12 @@ export function createAudio() {
     lfo.connect(lfoAmt).connect(chop.gain); lfo.start();
     cricketGain = ctx.createGain(); cricketGain.gain.value = 0;
     c.connect(cf).connect(chop).connect(cricketGain).connect(master); c.start();
+
+    // Rain: broadband hiss, low passed.
+    const rn = ctx.createBufferSource(); rn.buffer = noise; rn.loop = true;
+    const rf = ctx.createBiquadFilter(); rf.type = 'lowpass'; rf.frequency.value = 2600;
+    rainGain = ctx.createGain(); rainGain.gain.value = 0;
+    rn.connect(rf).connect(rainGain).connect(master); rn.start(0, 0.7);
 
     // Pluck buffers for the guitar, A minor pentatonic-ish range.
     for (const [name, f] of Object.entries(NOTE_HZ)) notes[name] = pluck(f, 2.2);
@@ -120,7 +126,8 @@ export function createAudio() {
     const windLevel = 0.03 + Math.min(0.05, Math.max(0, s.y - 8) * 0.0015) + Math.min(0.06, sp * 0.0022);
     windGain.gain.setTargetAtTime(windLevel, now, 0.5);
     windFilter.frequency.setTargetAtTime(380 + Math.sin(now * 0.13) * 160 + sp * 12, now, 0.8);
-    cricketGain.gain.setTargetAtTime(s.night * 0.022, now, 1.5);
+    cricketGain.gain.setTargetAtTime(s.night * 0.022 * (1 - (s.wet || 0)), now, 1.5);
+    rainGain.gain.setTargetAtTime((s.wet || 0) * 0.09, now, 1.5);
 
     // Hooves or boots.
     if (sp > 0.4 && now >= nextStep) {
@@ -138,7 +145,7 @@ export function createAudio() {
     }
 
     if (s.nearFire > 0.02 && now >= nextCrackle) { crackle(0.05 * s.nearFire); nextCrackle = now + 0.04 + Math.random() * 0.25; }
-    if (s.night < 0.3 && now >= nextBird) { if (Math.random() < 0.6) chirp(); nextBird = now + 2 + Math.random() * 6; }
+    if (s.night < 0.3 && (s.wet || 0) < 0.3 && now >= nextBird) { if (Math.random() < 0.6) chirp(); nextBird = now + 2 + Math.random() * 6; }
 
     // Music: a slow progression, one plucked note at a time, louder in town and at dusk.
     const musicLevel = (s.inTown ? 0.55 : 0.12) + s.dusk * 0.3;

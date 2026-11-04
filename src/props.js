@@ -354,7 +354,7 @@ export function createProps(scene, base) {
     uSky.value.copy(scene.fog.color);
 
     const elev = sky.elev, night = sky.night;
-    cloudMat.color.copy(sky.sunColor).lerp(tmp.copy(white), 0.5).multiplyScalar(0.35 + Math.max(0, elev) * 0.65);
+    cloudMat.color.copy(sky.sunColor).lerp(tmp.copy(white), 0.5).multiplyScalar((0.35 + Math.max(0, elev) * 0.65) * (1 - (sky.overcast || 0) * 0.4));
     const fl = 1.2 - Math.max(0, elev);
     fires.forEach((f) => { f.light.intensity = (1.6 + Math.random() * 0.8) * fl * L; f.flame.scale.y = 0.8 + Math.random() * 0.5; });
     uNight.value = night;

@@ -61,7 +61,9 @@ export function createSky(scene, renderer, { shadowSize = 2048 } = {}) {
   const state = { night: 0, elev: 1, sunColor: uniforms.sunColor.value, sunDir: uniforms.sunDir.value };
   const tmp = new THREE.Color();
 
-  function update(clockH, focus, camera) {
+  const GREY = new THREE.Color();
+  // overcast 0..1 greys the sky, dims the sun and pulls the fog in.
+  function update(clockH, focus, camera, overcast = 0) {
     const ang = (clockH / 24 - 0.25) * Math.PI * 2;
     const elev = Math.sin(ang);
     uniforms.sunDir.value.set(Math.cos(ang), Math.sin(ang), 0.35).normalize();
@@ -77,14 +79,21 @@ export function createSky(scene, renderer, { shadowSize = 2048 } = {}) {
     uniforms.horizon.value.lerpColors(a.h, b.h, k);
     uniforms.sunColor.value.lerpColors(a.sun, b.sun, k);
 
+    if (overcast > 0.01) {
+      for (const c of [uniforms.zenith.value, uniforms.horizon.value]) {
+        const l = c.r * 0.3 + c.g * 0.59 + c.b * 0.11;
+        c.lerp(GREY.setRGB(l * 0.85, l * 0.87, l * 0.92), overcast * 0.75);
+      }
+      uniforms.sunColor.value.lerp(GREY.setRGB(0.6, 0.6, 0.62), overcast * 0.6);
+    }
     const night = Math.max(0, Math.min(1, (-elev + 0.05) / 0.25));
     uniforms.night.value = night;
     scene.fog.color.copy(uniforms.horizon.value).lerp(DUST_FOG, 0.25 * (1 - night));
-    scene.fog.near = 70 - night * 30;
-    scene.fog.far = 330 - night * 120;
+    scene.fog.near = (70 - night * 30) * (1 - overcast * 0.5);
+    scene.fog.far = (330 - night * 120) * (1 - overcast * 0.4);
 
     // Softer falloff than the prototype's linear curve so golden hour keeps its light.
-    sun.intensity = Math.pow(Math.max(0.02, elev), 0.55) * 1.5 * L;
+    sun.intensity = Math.pow(Math.max(0.02, elev), 0.55) * 1.5 * L * (1 - overcast * 0.7);
     sun.color.copy(uniforms.sunColor.value);
     hemi.intensity = (0.22 + Math.max(0, elev) * 0.45) * L;
     // Fill takes half its color from the horizon so dusk shadows stay warm instead of going purple-black.

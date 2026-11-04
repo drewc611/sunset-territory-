@@ -23,8 +23,24 @@ export function createCamera() {
     const dist = cur.dist + Math.abs(rider.speed) * cur.speedPull;
     let cx = rider.x - Math.sin(cy) * dist, cz = rider.z - Math.cos(cy) * dist;
     // Keep the camera out of buildings and trunks.
-    if (collision) { const r = collision.resolve(cx, cz, 0.35); cx = r.x; cz = r.z; }
-    const camY = Math.max(rider.y + cur.height, height(cx, cz) + 1.1);
+    if (collision) {
+      // If a building stands between camera and rider, come in front of it.
+      for (let t = 0.85; t >= 0; t -= 0.085) {
+        if (collision.insideBox(cx + (rider.x - cx) * t, cz + (rider.z - cz) * t)) {
+          const k = Math.max(0, Math.min(t + 0.1, 1 - 2.2 / dist)); // never closer than 2.2 m
+          cx += (rider.x - cx) * k; cz += (rider.z - cz) * k;
+          break;
+        }
+      }
+      const r = collision.resolve(cx, cz, 0.35); cx = r.x; cz = r.z;
+    }
+    let camY = Math.max(rider.y + cur.height, height(cx, cz) + 1.1);
+    // Keep the sight line to the rider above any rise in between.
+    const lookY = rider.y + cur.look;
+    for (const t of [0.3, 0.55, 0.8]) {
+      const hp = height(cx + (rider.x - cx) * t, cz + (rider.z - cz) * t) + 0.7;
+      camY = Math.max(camY, (hp - lookY * t) / (1 - t));
+    }
     target.set(cx, camY, cz);
     camera.position.lerp(target, Math.min(1, dt * 6));
     camera.lookAt(rider.x, rider.y + cur.look, rider.z);

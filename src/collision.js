@@ -78,5 +78,17 @@ export function createCollision({ trees, rocks, buildings }) {
     return height(x, z) < LAKE_Y - maxDepth;
   }
 
-  return { resolve, tooDeep, addBox };
+  // Is the point inside any building box? Used to pull the camera in front of walls.
+  function insideBox(x, z) {
+    const list = grid.get(key(Math.floor(x / CELL), Math.floor(z / CELL)));
+    if (!list) return false;
+    for (const sh of list) {
+      if (sh.kind !== 1) continue;
+      const dx = x - sh.x, dz = z - sh.z;
+      if (Math.abs(dx * sh.c - dz * sh.s) < sh.hw && Math.abs(dx * sh.s + dz * sh.c) < sh.hd) return true;
+    }
+    return false;
+  }
+
+  return { resolve, tooDeep, addBox, insideBox };
 }

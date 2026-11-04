@@ -8,10 +8,8 @@ const SCALE = 0.0095;
 const CLIP_LEN = 1.5;
 const IDLE_T = 1.35; // standing frame, see below
 
-// The clip is a gallop and there is no walk or idle clip yet. Playback rate follows
-// ground speed; below a trot the clip fades out to the rest pose so a standing horse
-// isn't frozen mid stride.
-const STRIDE_SPEED = 11; // m/s of ground speed per 1x clip rate
+// The clip is a gallop and there is no walk or idle clip. Playback rate follows ground
+// speed, and below gallop speed the clip is blended with a standing frame (see update).
 
 const _v = new THREE.Vector3();
 
@@ -104,10 +102,12 @@ export function createHorse(scene, base) {
   function update(dt, speed, turn, mounted = true) {
     const s = Math.abs(speed);
     if (mixer) {
-      const w = THREE.MathUtils.smoothstep(s, 0.4, 4);
+      // Blend the gallop with the standing frame below gallop speed: shorter reach and a
+      // quicker beat reads as a trot instead of a slowed down gallop.
+      const w = THREE.MathUtils.smoothstep(s, 0.4, 4) * THREE.MathUtils.lerp(0.42, 1, THREE.MathUtils.smoothstep(s, 9, 18));
       action.setEffectiveWeight(w);
       if (idle) idle.setEffectiveWeight(1 - w);
-      action.timeScale = THREE.MathUtils.clamp(s / STRIDE_SPEED, 0.35, 2.6);
+      action.timeScale = THREE.MathUtils.clamp(0.7 + s / 16, 0.7, 2.4);
       mixer.update(dt);
     }
     // Lean into the turn, harder at speed.

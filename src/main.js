@@ -16,11 +16,13 @@ import { createJobs } from './jobs.js';
 import { createUi } from './ui.js';
 import { createAudio } from './audio.js';
 import { createQuality } from './quality.js';
+import { createAmbient } from './ambient.js';
 import { loadGame, saveGame, clearGame, loadSettings, saveSettings } from './save.js';
 import { house, hitchRail } from './models.js';
 import { POIS, HOME } from './world.js';
 
 const BASE = import.meta.env.BASE_URL;
+const params = new URLSearchParams(location.search);
 const DAY_SECONDS = 600; // a ten minute day: long enough for a job to fit in daylight
 const touch = matchMedia('(hover: none)').matches;
 
@@ -42,6 +44,7 @@ const hud = createHud();
 const npcs = createNpcs(scene, props.towns);
 const jobs = createJobs(scene, npcs, props.material);
 const audio = createAudio();
+const ambient = createAmbient(scene, { forcedWeather: params.get('weather') }); // ?weather=rain for testing
 const settings = { sound: true, quality: 'auto', invertCam: false, ...loadSettings() };
 const quality = createQuality({ renderer, scene, sun: sky.sun, props, touch });
 quality.set(settings.quality);
@@ -50,7 +53,6 @@ input.setInvert(settings.invertCam);
 const perf = createPerfHud(renderer, scene);
 const bench = createBenchmark();
 
-const params = new URLSearchParams(location.search);
 
 // Horse and player state. While mounted the player rides along; on foot they're separate.
 const rider = { x: -20, z: 10, y: 0, heading: Math.PI, speed: 0 }; // the horse
@@ -244,20 +246,21 @@ function persist() {
   saveGame({
     horse: { x: rider.x, z: rider.z, heading: rider.heading },
     foot: { x: foot.x, z: foot.z, heading: foot.heading },
-    mounted: player.mounted, clockH,
+    mounted: player.mounted, clockH, dayIndex,
     discovered: Object.keys(hud.discovered),
     jobs: { money: jobs.state.money, done: jobs.state.done, active: jobs.state.active, deed: jobs.state.deed },
     intro: introSeen,
   });
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden && running) persist(); });
-let saveTimer = 0, introSeen = false;
+let saveTimer = 0, introSeen = false, dayIndex = 0;
 
 const saved = !bench.active && !params.has('at') ? loadGame() : null;
 if (saved) {
   Object.assign(rider, saved.horse || {});
   rider.y = groundY(rider.x, rider.z);
   if (typeof saved.clockH === 'number' && !params.has('t')) clockH = saved.clockH;
+  dayIndex = saved.dayIndex | 0;
   (saved.discovered || []).forEach((n) => { hud.discovered[n] = true; });
   jobs.load(saved.jobs);
   if (jobs.state.deed) buildHomestead();
@@ -292,7 +295,7 @@ function audioState(focus, sk) {
   const fd = props.nearFire(focus.x, focus.z);
   const dusk = Math.max(0, 1 - Math.abs(clockH - 18.3) / 1.6) + Math.max(0, 1 - Math.abs(clockH - 6.2) / 1.2) * 0.6;
   return { speed: player.mounted ? rider.speed : foot.speed, mounted: player.mounted, x: focus.x, z: focus.z, y: focus.y,
-    inTown, nearFire: Math.max(0, 1 - fd / 22), night: sk.night, dusk: Math.min(1, dusk) };
+    inTown, nearFire: Math.max(0, 1 - fd / 22), night: sk.night, dusk: Math.min(1, dusk), wet: ambient.weather.wet };
 }
 
 const IDLE = { fwd: 0, turn: 0, gallop: false, camYawDelta: 0, dragging: false };
@@ -313,8 +316,11 @@ renderer.setAnimationLoop((now) => {
   if (!player.mounted) stepFoot(dt, ctl);
   const focus = player.mounted ? rider : foot;
   updateCamera(dt, focus, ctl, !player.mounted);
-  clockH = (clockH + dt * (24 / DAY_SECONDS)) % 24;
-  const s = sky.update(clockH, focusVec.set(focus.x, focus.y, focus.z), camera); // shadows follow the player
+  clockH += dt * (24 / DAY_SECONDS);
+  if (clockH >= 24) { clockH -= 24; dayIndex++; }
+  const s = sky.update(clockH, focusVec.set(focus.x, focus.y, focus.z), camera, ambient.weather.overcast); // shadows follow the player
+  s.overcast = ambient.weather.overcast;
+  ambient.update(dt, { clockH, dayIndex, night: s.night, camera });
   props.update(dt, s, focus);
   npcs.update(dt, focus);
   jobs.update(dt, focus, player.mounted, rider.speed);
