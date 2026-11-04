@@ -1,10 +1,12 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { createRig } from './character.js';
 
 // Horse.glb: one mesh, 15 morph targets, one 1.5s gallop clip "horse_A_".
 // Model units are about 1/0.0095 m, head faces +Z, hooves at y≈0.
 const SCALE = 0.0095;
 const CLIP_LEN = 1.5;
+const IDLE_T = 1.35; // standing frame, see below
 
 // The clip is a gallop and there is no walk or idle clip yet. Playback rate follows
 // ground speed; below a trot the clip fades out to the rest pose so a standing horse
@@ -46,41 +48,20 @@ function spineVertex(geo, zMin, zMax) {
   return best;
 }
 
-function buildRider() {
-  // Same proportions as the prototype rider, scaled to this horse.
-  const rider = new THREE.Group();
-  const m = (c) => new THREE.MeshStandardMaterial({ color: c, roughness: 1 });
-  const coat = m(0x3f3a33), skin = new THREE.MeshStandardMaterial({ color: 0xc69a74, roughness: 0.9 });
-  const hat = m(0x3b2a1e), pants = m(0x2c2a30), scarf = m(0xb04040), rein = m(0x241610);
-  const part = (geo, mat, x, y, z, rx = 0, ry = 0, rz = 0) => {
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(x, y, z); mesh.rotation.set(rx, ry, rz); mesh.castShadow = true;
-    rider.add(mesh); return mesh;
-  };
-  part(new THREE.CylinderGeometry(0.32, 0.38, 1.0, 10), coat, 0, 0.55, 0);
-  part(new THREE.SphereGeometry(0.24, 12, 10), skin, 0, 1.25, 0.02);
-  part(new THREE.CylinderGeometry(0.58, 0.58, 0.05, 16), hat, 0, 1.42, 0, 0.08);
-  part(new THREE.CylinderGeometry(0.27, 0.3, 0.32, 12), hat, 0, 1.6, 0, 0.08);
-  part(new THREE.BoxGeometry(0.5, 0.12, 0.45), scarf, 0, 1.02, 0.05);
-  for (const lx of [0.36, -0.36]) {
-    part(new THREE.CylinderGeometry(0.1, 0.09, 0.85, 8), coat, lx, 0.55, 0.25, -1.1);
-    part(new THREE.CylinderGeometry(0.13, 0.11, 0.9, 8), pants, lx * 1.4, 0.05, 0.1, 0.35, 0, lx > 0 ? -0.25 : 0.25);
-  }
-  part(new THREE.CylinderGeometry(0.02, 0.02, 1.3, 4), rein, 0, 0.75, 0.75, -1.3);
-  rider.scale.setScalar(0.56);
-  return rider;
-}
-
 export function createHorse(scene, base) {
   const root = new THREE.Group();
   root.rotation.order = 'YXZ';
   scene.add(root);
 
-  const rider = buildRider();
-  rider.position.set(0, 1.33, -0.15);
-  root.add(rider);
+  // The player's rig. It sits on the horse while mounted; main.js moves it into
+  // the scene when the player gets down.
+  const rig = createRig();
+  const seat = new THREE.Group();
+  seat.position.set(0, 1.33, -0.15);
+  root.add(seat);
+  seat.add(rig.root);
 
-  let mixer = null, action = null, mesh = null, seat = -1, seatFront = -1, seatRear = -1;
+  let mixer = null, action = null, idle = null, mesh = null, seatV = -1, seatFront = -1, seatRear = -1;
   const ready = new Promise((resolve, reject) => {
     new GLTFLoader().load(`${base}assets/Horse.glb`, (gltf) => {
       const model = gltf.scene;
@@ -94,12 +75,21 @@ export function createHorse(scene, base) {
       });
       root.add(model);
       mixer = new THREE.AnimationMixer(model);
-      action = mixer.clipAction(gltf.animations[0]);
+      const clip = gltf.animations[0];
+      action = mixer.clipAction(clip);
+      // The model's rest pose is a stride frame, so a standing horse would freeze
+      // mid gallop. Hold the clip frame where all four hooves are down and the legs
+      // are closest together instead (scored offline over 30 frames: 1.35 s).
+      idle = mixer.clipAction(clip.clone());
+      idle.play();
+      idle.time = IDLE_T;
+      idle.timeScale = 0;
+      action.time = IDLE_T;
       action.play();
       action.setEffectiveWeight(0);
       if (mesh) {
         mesh.frustumCulled = false; // morphs move it outside its static bounds
-        seat = spineVertex(mesh.geometry, -40, 0);
+        seatV = spineVertex(mesh.geometry, -40, 0);
         seatRear = spineVertex(mesh.geometry, -70, -45);
         seatFront = spineVertex(mesh.geometry, 5, 30);
       }
@@ -110,12 +100,13 @@ export function createHorse(scene, base) {
   const a = new THREE.Vector3(), b = new THREE.Vector3();
   let lean = 0;
 
-  // speed in m/s (negative when backing up), turn in [-1, 1].
-  function update(dt, speed, turn) {
+  // speed in m/s (negative when backing up), turn in [-1, 1], mounted: rider aboard.
+  function update(dt, speed, turn, mounted = true) {
     const s = Math.abs(speed);
     if (mixer) {
       const w = THREE.MathUtils.smoothstep(s, 0.4, 4);
       action.setEffectiveWeight(w);
+      if (idle) idle.setEffectiveWeight(1 - w);
       action.timeScale = THREE.MathUtils.clamp(s / STRIDE_SPEED, 0.35, 2.6);
       mixer.update(dt);
     }
@@ -124,15 +115,16 @@ export function createHorse(scene, base) {
     lean += (targetLean - lean) * Math.min(1, dt * 4);
     root.rotation.z = lean;
 
-    if (mesh && seat >= 0) {
-      morphedVertex(mesh, seat, _v);
-      rider.position.set(_v.x * SCALE, _v.y * SCALE - 0.02, _v.z * SCALE);
+    if (mesh && seatV >= 0) {
+      morphedVertex(mesh, seatV, _v);
+      seat.position.set(_v.x * SCALE, _v.y * SCALE + 0.06, _v.z * SCALE);
       morphedVertex(mesh, seatFront, a);
       morphedVertex(mesh, seatRear, b);
-      rider.rotation.x = -Math.atan2(a.y - b.y, a.z - b.z) * 0.6;
-      rider.rotation.z = -lean * 0.5; // rider stays a bit more upright than the horse
+      seat.rotation.x = -Math.atan2(a.y - b.y, a.z - b.z) * 0.6;
+      seat.rotation.z = -lean * 0.5; // rider stays a bit more upright than the horse
     }
+    if (mounted) rig.update(dt, 'ride', s);
   }
 
-  return { root, rider, update, ready };
+  return { root, rig, seat, update, ready };
 }

@@ -230,7 +230,7 @@ export function shop(seed) {
   windows(b, w, h, 0.32, 2, R);
   boardwalk(b, w, 2.6, h * 0.62, R);
   b.add(new THREE.BoxGeometry(0.25, 0.35, 0.25), LAMP, { x: w / 2 - 0.4, y: h * 0.62 - 0.3, z: 2.3 }, { glow: 1 });
-  return { geo: b.build(), w: w + 0.6, d: d + 2.6, zc: -d / 2 + 1.3 };
+  return { geo: b.build(), w: w + 0.2, d: d + 0.3, zc: -d / 2 + 0.15 }; // footprint: walls and facade, not the boardwalk
 }
 
 // House: gabled cabin with a porch and chimney.
@@ -255,7 +255,7 @@ export function house(seed) {
   b.add(new THREE.BoxGeometry(1.2, 2.2, 0.12), DARK, { y: 1.1, z: 0.06 });
   windows(b, w, h, 0.02, 1, R);
   boardwalk(b, w, 2.2, h * 0.75, R);
-  return { geo: b.build(), w: w + 0.6, d: d + 2.2, zc: -d / 2 + 1.1 };
+  return { geo: b.build(), w: w + 0.2, d: d + 0.1, zc: -d / 2 };
 }
 
 // Church: white board walls, steep roof, bell tower over the door.

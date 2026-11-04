@@ -32,7 +32,11 @@ export function createHud() {
   const discovered = {};
   let lastPOI = null, lastText = '';
 
-  function update(rider, clockH) {
+  const actEl = $('act'), spurEl = $('spur'), helpEl = $('help');
+  let lastAct = '', lastFoot = null;
+
+  // opts: { onFoot, action } where action is the label for the action button or null.
+  function update(rider, clockH, opts = {}) {
     let here = null;
     for (const p of POIS) if (Math.hypot(rider.x - p.x, rider.z - p.z) < p.r) here = p;
     if (here && here !== lastPOI) {
@@ -56,7 +60,23 @@ export function createHud() {
     }
     const hh = Math.floor(clockH), mm = Math.floor((clockH - hh) * 60);
     const s = (((hh + 11) % 12) + 1) + ':' + String(mm).padStart(2, '0') + (hh < 12 ? ' am' : ' pm');
-    const pace = Math.abs(rider.speed) < 0.5 ? 'Standing' : rider.speed < 9 ? 'Walking' : rider.speed < 16 ? 'Trotting' : 'Galloping';
+    const sp = Math.abs(rider.speed);
+    const pace = opts.onFoot
+      ? (sp < 0.2 ? 'On foot' : sp < 2.5 ? 'Walking' : 'Running')
+      : (sp < 0.5 ? 'Standing' : rider.speed < 9 ? 'Walking' : rider.speed < 16 ? 'Trotting' : 'Galloping');
+    const act = opts.action || '';
+    if (act !== lastAct) {
+      lastAct = act;
+      actEl.textContent = act;
+      actEl.hidden = !act;
+    }
+    if (opts.onFoot !== lastFoot) {
+      lastFoot = opts.onFoot;
+      spurEl.textContent = opts.onFoot ? 'RUN' : 'GALLOP';
+      helpEl.textContent = opts.onFoot
+        ? 'W A S D to walk, Shift to run, F to mount when close, H to whistle for your horse'
+        : 'W A S D to ride, hold Shift to gallop, F to get down when slow, drag or Q and E to swing the camera';
+    }
     if (s + pace !== lastText) { lastText = s + pace; timeEl.textContent = s; paceEl.textContent = pace; }
 
     mctx.drawImage(mapBase, 0, 0);

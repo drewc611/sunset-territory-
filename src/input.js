@@ -59,6 +59,17 @@ export function createInput(canvas) {
   canvas.addEventListener('pointerup', endDrag);
   canvas.addEventListener('pointercancel', endDrag);
 
+  // Contextual action (F, or the action button): dismount, mount, or whistle. H whistles.
+  const handlers = { action: [], whistle: [] };
+  addEventListener('keydown', (e) => {
+    if (e.repeat) return;
+    const k = e.key.toLowerCase();
+    if (k === 'f') handlers.action.forEach((f) => f());
+    if (k === 'h') handlers.whistle.forEach((f) => f());
+  });
+  const actEl = document.getElementById('act');
+  actEl.addEventListener('pointerdown', (e) => { e.preventDefault(); handlers.action.forEach((f) => f()); });
+
   const state = { fwd: 0, turn: 0, gallop: false, camYawDelta: 0, dragging: false, keys };
 
   function read(dt) {
@@ -81,5 +92,5 @@ export function createInput(canvas) {
     return state;
   }
 
-  return { read, state };
+  return { read, state, onAction: (f) => handlers.action.push(f), onWhistle: (f) => handlers.whistle.push(f) };
 }
