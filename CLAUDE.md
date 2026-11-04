@@ -11,9 +11,9 @@ Original third person open world western, browser first. Not a Rockstar game and
 prototype/index.html is a working single file beta (beta 0.2): procedural terrain, horse riding, day/night, towns, camps, lake, minimap, discovery stamps, touch and keyboard controls. It uses primitives for everything, which is why it looks like a toy. It is the reference for behavior, not for code structure.
 
 ## Current state of src/ (Nov 4 2026)
-The prototype is ported into modules: world.js (heights, POIs), sky.js, terrain.js (textured splat shader), props.js (still primitives), horse.js (Horse.glb, speed driven gallop, rider on the morphed back), input.js, camera.js, hud.js, debug/perf.js, debug/benchmark.js. URL params: ?perf shows the perf HUD (also backtick or triple tap on the clock), ?bench runs the 90 s benchmark route, ?t=17.5 sets the start time.
+A playable game: riding and walking, eight townsfolk with an eight job chain ending in a homestead deed, synthesized sound, saves, journal, quality tiers. See README.md for the file layout and docs/HANDOVER.md for decisions and known gaps. URL params: ?perf, ?bench, ?t=17.5, ?at=x,z,heading, ?debug.
 
-The phased plan with exit gates is docs/SCHEDULE.md. It puts the Phase 0 pipeline (phone preview, perf HUD, asset compression) before the job list below.
+The phased plan with exit gates is docs/SCHEDULE.md, compressed to finish by Nov 30 2026. Jobs 1 to 4 and 6 below are done (props are made in code, not a pack). Job 5, post processing, is still open.
 
 ## The job
 Port the prototype into src/ as modules and replace the primitive look with real assets and materials, in this order:

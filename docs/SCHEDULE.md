@@ -1,5 +1,16 @@
 # Sunset Territory, phased development schedule
 
+## Compressed plan to Nov 30 2026
+Andrew moved the finish to the end of November. The phases below still define the gates; this is the order they run in.
+
+- Nov 4, done: Pages deploy, perf HUD, benchmark route, home screen manifest, the port, textured terrain, props, collision, on foot, townsfolk, odd jobs, sound, saves, quality tiers.
+- Nov 5 to 11: first iPhone numbers from `?bench`, fill in the graphics budget below, fix whatever the phone shows. Horse walk and idle. Tree impostors past 120 m. KTX2 textures.
+- Nov 12 to 18: weather (overcast, rain), ambient life (birds, dust devils, campfire smoke), a second job chain, more landmarks.
+- Nov 19 to 25: the Phase 4 checklist: 20 minute thermal run, accessibility pass, name trademark search, LICENSES.md audit.
+- Nov 26 to 30: soft launch of the public link.
+
+Dropped for November: closed beta with telemetry, commissioned music (the game ships with its synthesized score), the App Store shell.
+
 Studio style phases, solo dev plus Claude Code. Each phase has a goal, deliverables, an exit gate, and a kill switch. No phase starts until the previous gate passes on Andrew's iPhone, not in a desktop browser. Dates are elapsed weeks from the day src/ port starts.
 
 Hard targets for the whole project:
