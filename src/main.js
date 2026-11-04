@@ -4,7 +4,8 @@ import { WORLD, groundY, height } from './world.js';
 import { createSky } from './sky.js';
 import { createTerrain } from './terrain.js';
 import { createProps } from './props.js';
-import { createHorse } from './horse.js';
+import { createHorse as createGlbHorse } from './horse.js';
+import { createHorse as createRigHorse } from './horse-rig.js';
 import { createInput } from './input.js';
 import { createCamera } from './camera.js';
 import { createHud } from './hud.js';
@@ -40,7 +41,7 @@ const { camera, snap: snapCamera } = cam;
 const sky = createSky(scene, renderer, { shadowSize: 1024 });
 createTerrain(scene, renderer, BASE);
 const props = createProps(scene, BASE);
-const horse = createHorse(scene, BASE);
+const horse = params.get('horse') === 'glb' ? createGlbHorse(scene, BASE) : createRigHorse(scene); // ?horse=glb for the old model
 const input = createInput(canvas);
 const hud = createHud();
 const npcs = createNpcs(scene, props.towns);
@@ -323,6 +324,11 @@ renderer.setAnimationLoop((now) => {
   if (!player.mounted) stepFoot(dt, ctl);
   const focus = player.mounted ? rider : foot;
   updateCamera(dt, focus, ctl, !player.mounted);
+  if (params.has('side')) { // ?side: camera rides alongside, for judging gaits
+    const sx = focus.x + Math.cos(focus.heading) * 6, sz = focus.z - Math.sin(focus.heading) * 6;
+    camera.position.set(sx, Math.max(focus.y, height(sx, sz)) + 1.4, sz);
+    camera.lookAt(focus.x, focus.y + 1.1, focus.z);
+  }
   if (debugView) { // ?view=x,z,dist: slow orbit around a point, for checking models
     const [vx, vz, vd] = debugView, a = now * 0.0001, vy = height(vx, vz);
     const cxv = vx + Math.cos(a) * vd, czv = vz + Math.sin(a) * vd;
