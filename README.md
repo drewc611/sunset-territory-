@@ -16,6 +16,7 @@ An original open world western for the browser. Ride a valley at your own pace, 
 | Talk, get down, mount, whistle | The action button above GALLOP | F |
 | Whistle for your horse | Action button when far from it | H |
 | Journal and settings | Tap the place name, top left | J |
+| Map of the territory | Tap the minimap | M |
 
 ## How it plays
 
@@ -38,6 +39,7 @@ Add these to the URL:
 - `?bench` rides a fixed 90 second route at a gallop and reports frame times to paste into a PR. `?bench=30` for a shorter run.
 - `?t=17.5` starts the day at 5:30 pm.
 - `?at=x,z,heading` starts the rider at a map position (skips the save).
+- `?reveal` uncovers the whole map.
 - `?debug` exposes game state on `window.__game` for scripted tests.
 
 ## Layout

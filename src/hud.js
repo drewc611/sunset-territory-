@@ -83,8 +83,8 @@ export function createHud(terrain) {
       lastFoot = opts.onFoot;
       spurEl.textContent = opts.onFoot ? 'RUN' : 'GALLOP';
       helpEl.textContent = opts.onFoot
-        ? 'W A S D to walk, Shift to run, F to mount when close, H to whistle for your horse'
-        : 'W A S D to ride, hold Shift to gallop, F to get down when slow, drag or Q and E to swing the camera';
+        ? 'W A S D to walk, Shift to run, F to mount when close, H to whistle, M for the map'
+        : 'W A S D to ride, Shift to gallop, F to get down when slow, M for the map, drag to look around';
     }
     if (s + pace !== lastText) { lastText = s + pace; timeEl.textContent = s; paceEl.textContent = pace; }
 

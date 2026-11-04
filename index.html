@@ -39,6 +39,16 @@
   <p id="dText"></p>
   <div id="dChoices"></div>
 </div>
+<div id="worldmap" hidden role="dialog" aria-label="Map of the territory">
+  <canvas id="wmCanvas"></canvas>
+  <div id="wmBar">
+    <b>The Territory</b>
+    <button type="button" id="wmIn" aria-label="Zoom in">+</button>
+    <button type="button" id="wmOut" aria-label="Zoom out">&minus;</button>
+    <button type="button" id="wmHere">You</button>
+    <button type="button" id="wmClose">Close</button>
+  </div>
+</div>
 <div id="journal" hidden role="dialog" aria-label="Journal">
   <div id="jPage">
     <header><h1>Journal</h1><button type="button" id="jClose">Close</button></header>
