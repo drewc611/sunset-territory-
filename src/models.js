@@ -374,3 +374,83 @@ export function wagon() {
   b.add(new THREE.BoxGeometry(0.12, 0.12, 2.0), 0x4a3424, { y: 0.7, z: 2.6 });
   return b.build();
 }
+
+// ---------------------------------------------------------------- landmarks
+
+// Sandstone arch: two weathered legs and a lintel of stacked, jittered blocks.
+export function sandArch() {
+  const b = new Builder();
+  const tone = 0xb27a52, tone2 = 0x9c6646;
+  for (const sx of [-1, 1]) {
+    for (let i = 0; i < 5; i++) {
+      b.add(new THREE.BoxGeometry(3.2 - i * 0.2, 2.2, 3.0 - i * 0.15), i % 2 ? tone : tone2,
+        { x: sx * (5.2 - i * 0.25), y: 1.1 + i * 2.1, ry: (i - 2) * 0.08 }, { jitter: 0.7, seed: 40 + i + sx * 10, shade: 0.35 });
+    }
+  }
+  for (let i = 0; i < 6; i++) {
+    const t = i / 5 - 0.5;
+    b.add(new THREE.BoxGeometry(2.6, 2.0 - Math.abs(t) * 0.6, 2.8), i % 2 ? tone : tone2,
+      { x: t * 11, y: 11.2 - t * t * 4, rz: -t * 0.6 }, { jitter: 0.6, seed: 60 + i, shade: 0.2 });
+  }
+  return { geo: b.build(), boxes: [{ x: -5, z: 0, w: 3.4, d: 3.2 }, { x: 5, z: 0, w: 3.4, d: 3.2 }] };
+}
+
+// Mine adit: a timber frame set into a mound, rails running out to an ore cart.
+export function mineAdit() {
+  const b = new Builder();
+  b.add(new THREE.IcosahedronGeometry(7, 1), 0x7a6450, { y: 1.5, z: -6, sx: 1.4, sy: 0.75 }, { jitter: 1.6, seed: 71, shade: 0.4 });
+  b.add(new THREE.BoxGeometry(3.4, 3.6, 0.6), 0x0e0a07, { y: 1.8, z: 0.2 });
+  for (const sx of [-1, 1]) b.add(new THREE.BoxGeometry(0.45, 4.0, 0.45), 0x5a4330, { x: sx * 1.9, y: 2.0, z: 0.6 });
+  b.add(new THREE.BoxGeometry(4.6, 0.5, 0.55), 0x5a4330, { y: 4.1, z: 0.6 });
+  b.add(new THREE.BoxGeometry(3.6, 0.7, 0.12), 0x2e241a, { y: 4.8, z: 0.7 });
+  for (const sx of [-0.55, 0.55]) b.add(new THREE.BoxGeometry(0.1, 0.1, 9), 0x6a6460, { x: sx, y: 0.12, z: 4.8 });
+  for (let i = 0; i < 9; i++) b.add(new THREE.BoxGeometry(1.6, 0.12, 0.25), 0x4a3424, { y: 0.06, z: 1 + i });
+  b.add(new THREE.BoxGeometry(1.3, 0.9, 1.7), 0x5a4a3e, { y: 0.85, z: 7.5 }, { shade: 0.3 });
+  b.add(new THREE.IcosahedronGeometry(0.6, 0), 0x6e6458, { y: 1.4, z: 7.5, sx: 1.2, sy: 0.6 }, { jitter: 0.2, seed: 9 });
+  for (const sz of [-0.6, 0.6]) for (const sx of [-0.62, 0.62]) b.add(new THREE.CylinderGeometry(0.28, 0.28, 0.08, 8), 0x2a2420, { x: sx, y: 0.3, z: 7.5 + sz, rz: Math.PI / 2 });
+  return { geo: b.build(), boxes: [{ x: 0, z: -6, w: 16, d: 9 }, { x: 0, z: 7.5, w: 1.4, d: 1.8 }] };
+}
+
+// Lookout tower: four splayed legs, cross bracing, a railed platform and a roof.
+export function lookoutTower() {
+  const b = new Builder();
+  const H = 11, wood = 0x6a5038, dark = 0x3a2a1e;
+  for (const [x, z] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+    b.add(new THREE.BoxGeometry(0.3, H, 0.3), wood, { x: x * 1.9, y: H / 2, z: z * 1.9, rz: x * 0.06, rx: -z * 0.06 });
+  }
+  for (const y of [2.5, 5.5, 8.5]) for (const [rx, rz, w] of [[0, 0, 4.6], [0, Math.PI / 2, 4.6]]) {
+    for (const off of [-1, 1]) {
+      const ry = rz;
+      b.add(new THREE.BoxGeometry(w, 0.16, 0.16), dark, { y, x: ry ? off * 1.95 : 0, z: ry ? 0 : off * 1.95, ry });
+    }
+  }
+  b.add(new THREE.BoxGeometry(5, 0.25, 5), wood, { y: H });
+  for (const [x, z, ry] of [[0, 2.4, 0], [0, -2.4, 0], [2.4, 0, Math.PI / 2], [-2.4, 0, Math.PI / 2]]) {
+    b.add(new THREE.BoxGeometry(5, 0.12, 0.12), dark, { x, y: H + 1, z, ry });
+  }
+  for (const [x, z] of [[-2.3, -2.3], [2.3, -2.3], [-2.3, 2.3], [2.3, 2.3]]) b.add(new THREE.BoxGeometry(0.2, 2.6, 0.2), wood, { x, y: H + 1.3, z });
+  b.add(new THREE.ConeGeometry(3.8, 1.6, 4), 0x4a3a2e, { y: H + 3.4, ry: Math.PI / 4 });
+  b.add(new THREE.BoxGeometry(0.2, 0.3, 0.2), 0xffb060, { y: H + 0.6 }, { glow: 1 });
+  // Ladder.
+  for (const sx of [-0.3, 0.3]) b.add(new THREE.BoxGeometry(0.08, H, 0.08), dark, { x: sx, y: H / 2, z: 2.2, rx: -0.12 });
+  return { geo: b.build(), boxes: [{ x: 0, z: 0, w: 4.4, d: 4.4 }] };
+}
+
+// Old mission: broken adobe walls around a courtyard and a bell gable still standing.
+export function missionRuin() {
+  const b = new Builder();
+  const adobe = 0xc8a27a, adobe2 = 0xb48c66;
+  const wall = (x, z, w, h, ry, seed) => b.add(new THREE.BoxGeometry(w, h, 0.9), seed % 2 ? adobe : adobe2, { x, y: h / 2, z, ry }, { jitter: 0.35, seed, shade: 0.35 });
+  wall(0, -7, 14, 4.2, 0, 1); wall(-7, -2, 9, 3.0, Math.PI / 2, 2); wall(7, -4, 5, 2.2, Math.PI / 2, 3);
+  wall(-4.5, 3, 5, 1.4, 0, 4); wall(5.5, 2.5, 3, 0.9, 0, 5);
+  // Bell gable over the back wall.
+  b.add(new THREE.BoxGeometry(4.4, 4.0, 1.0), adobe, { y: 6.2, z: -7 }, { jitter: 0.2, seed: 6, shade: 0.2 });
+  b.add(new THREE.CylinderGeometry(1.4, 1.4, 1.2, 10, 1, false, 0, Math.PI), adobe2, { y: 8.2, z: -7, rx: Math.PI / 2 });
+  b.add(new THREE.BoxGeometry(1.0, 1.4, 1.1), 0x20160e, { y: 6.6, z: -7 });
+  b.add(new THREE.CylinderGeometry(0.2, 0.42, 0.6, 8), 0x8a6a2a, { y: 6.6, z: -7 });
+  for (let i = 0; i < 7; i++) b.add(new THREE.BoxGeometry(0.6 + (i % 3) * 0.3, 0.4, 0.5), adobe2, { x: -3 + i * 1.1, y: 0.2, z: 1 - (i % 2) * 2, ry: i }, { jitter: 0.2, seed: 20 + i });
+  return {
+    geo: b.build(),
+    boxes: [{ x: 0, z: -7, w: 14, d: 1 }, { x: -7, z: -2, w: 1, d: 9 }, { x: 7, z: -4, w: 1, d: 5 }, { x: -4.5, z: 3, w: 5, d: 1 }, { x: 5.5, z: 2.5, w: 3, d: 1 }],
+  };
+}

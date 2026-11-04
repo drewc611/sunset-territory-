@@ -5,7 +5,7 @@ Andrew moved the finish to the end of November. The phases below still define th
 
 - Nov 4, done: Pages deploy, perf HUD, benchmark route, home screen manifest, the port, textured terrain, props, collision, on foot, townsfolk, odd jobs, sound, saves, quality tiers.
 - Nov 5 to 11: first iPhone numbers from `?bench`, fill in the graphics budget below, fix whatever the phone shows. Horse walk and idle. Tree impostors past 120 m. KTX2 textures.
-- Nov 12 to 18: weather (overcast, rain), ambient life (birds, dust devils, campfire smoke), a second job chain, more landmarks.
+- Nov 12 to 18: weather (overcast, rain), ambient life (birds, dust devils, campfire smoke), a second job chain, more landmarks. Done Nov 4.
 - Nov 19 to 25: the Phase 4 checklist: 20 minute thermal run, accessibility pass, name trademark search, LICENSES.md audit.
 - Nov 26 to 30: soft launch of the public link.
 

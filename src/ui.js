@@ -79,7 +79,8 @@ export function createUi({ onSetting, onNewGame }) {
   }
   const labelFor = (j) => ({ nails: 'Nails to Caldwell Crossing', letter: 'Letter to Jory Banks', strays: 'Rounded up strays',
     ridge: 'Scouted Kettle Ridge', water: 'Lake water for Doc Wilder', pelts: "Widow Sarrow's pelts",
-    powder: 'Blasting powder, unjostled', mail: 'Mail for the Sheriff' }[j.id]);
+    powder: 'Blasting powder, unjostled', mail: 'Mail for the Sheriff',
+    lamp: "Cole's lamp from the mine", arch: 'Sketched the Sandstone Arch', watch: 'Night watch at the Lookout Tower', bell: 'Rang the mission bell' }[j.id]);
 
   function toggleJournal(ctx) {
     if (journal.hidden) { renderJournal(ctx); journal.hidden = false; $('jClose').focus({ preventScroll: true }); }
