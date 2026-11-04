@@ -1,7 +1,13 @@
-// World definition and terrain height, ported from prototype/index.html.
-// Pure functions only, no three.js, so collision, minimap and placement can share them.
+// World definition and terrain height. Pure functions only, no three.js, so
+// collision, minimap, placement and terrain chunks all share them.
+//
+// The hand built valley from the prototype (WORLD, 400 m across) sits at the center
+// of a 20 km x 20 km territory (BIG). Its bowl blends out into large scale terrain
+// between VALLEY_IN and VALLEY_OUT meters from the center.
 export const WORLD = 400;
 export const SEG = 200;
+export const BIG = 20000;
+const VALLEY_IN = 230, VALLEY_OUT = 480;
 
 export const POIS = [
   { name: 'Brass Hollow', sub: 'Mining town on the east bench', x: 95, z: -40, r: 34, type: 'town', flat: true },
@@ -32,11 +38,58 @@ function rawHeight(x, z) {
   const ridge = Math.max(0, 1 - Math.hypot(x + 120, z + 90) / 95);
   h += ridge * ridge * 38;
   const edge = Math.max(Math.abs(x), Math.abs(z)) / (WORLD / 2);
-  h += Math.max(0, edge - 0.78) * 140;
+  h += Math.min(36, Math.max(0, edge - 0.78) * 140); // the valley rim, capped so it meets the land beyond
   return h;
 }
 
+const ss = (a, b, t) => { const k = Math.min(1, Math.max(0, (t - a) / (b - a))); return k * k * (3 - 2 * k); };
+
+// Ridged noise for mountain ranges: sharp crests, broad valleys.
+function ridged(x, z) {
+  let r = 0, amp = 1, f = 1;
+  for (let i = 0; i < 4; i++) { const n = 1 - Math.abs(2 * vnoise(x * f + 31, z * f + 17) - 1); r += n * n * amp; amp *= 0.5; f *= 2.1; }
+  return r;
+}
+
+// Large scale masks, shared by the height and the biome so they agree.
+export function masks(x, z) {
+  const mountain = ss(1.02, 1.34, fbm(x * 0.00045 + 50, z * 0.00045 + 20));
+  const canyon = ss(0.98, 1.24, fbm(x * 0.0004 + 80, z * 0.0004 + 60)) * (1 - mountain);
+  const moisture = fbm(x * 0.0003 + 200, z * 0.0003 + 100);
+  return { mountain, canyon, moisture };
+}
+
+// Terrain beyond the valley: rolling plains, mountain ranges, and red rock canyons
+// cut into mesas.
+export function bigHeight(x, z) {
+  const m = masks(x, z);
+  const continent = (fbm(x * 0.00028 + 13.1, z * 0.00028 + 5.7) - 0.97) * 120;
+  const hills = (fbm(x * 0.0035 + 3, z * 0.0035 + 9) - 0.97) * 28;
+  const mountains = m.mountain * ridged(x * 0.0016, z * 0.0016) * 170;
+  const c = Math.abs(vnoise(x * 0.004 + 5, z * 0.004 + 5) * 2 - 1);
+  let carve = m.canyon * ss(0.3, 0.0, c) * 55;
+  // Mesas: terrace the canyon country into flat topped steps.
+  let h = 30 + continent + hills + mountains + (fbm(x * 0.03, z * 0.03) - 0.97) * 3;
+  if (m.canyon > 0.05) {
+    const step = 14, tq = h / step, fl = Math.floor(tq), fr = tq - fl;
+    const terraced = (fl + ss(0.55, 0.85, fr)) * step;
+    h += (terraced - h) * m.canyon * 0.85;
+  }
+  return h - carve;
+}
+
+// 0 inside the valley, 1 out in the big terrain.
+export function valleyBlend(x, z) { return ss(VALLEY_IN, VALLEY_OUT, Math.hypot(x, z)); }
+
 export function height(x, z) {
+  const w = valleyBlend(x, z);
+  if (w >= 1) return bigHeight(x, z);
+  let h = valleyHeight(x, z);
+  if (w > 0) h += (bigHeight(x, z) - h) * w;
+  return h;
+}
+
+function valleyHeight(x, z) {
   let h = rawHeight(x, z);
   for (const p of POIS) {
     if (!p.flat) continue;

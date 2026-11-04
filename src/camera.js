@@ -5,7 +5,7 @@ import { height } from './world.js';
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
 export function createCamera() {
-  const camera = new THREE.PerspectiveCamera(58, innerWidth / innerHeight, 0.3, 1400);
+  const camera = new THREE.PerspectiveCamera(58, innerWidth / innerHeight, 0.3, 4000);
   const target = new THREE.Vector3();
   let yaw = 0;
 
