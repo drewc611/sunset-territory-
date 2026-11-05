@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#1b140d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sunset">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<title>Sunset Territory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rye&family=Vollkorn:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="vignette"></div>
+<div id="hud">
+  <div id="top">
+    <div id="left">
+      <div id="place" role="button" tabindex="0" aria-label="Open journal"><b id="placeName">Open range</b><span id="placeSub">Heading north</span><small>Journal (J)</small></div>
+      <div id="job" hidden></div>
+      <div id="notice" hidden></div>
+    </div>
+    <div id="clock"><span id="time">6:00 am</span><br><span id="pace">Standing</span><br><span id="money">$0</span></div>
+  </div>
+  <div id="stamp"></div>
+  <canvas id="map" width="132" height="132"></canvas>
+  <div id="stick"><div id="knob"></div></div>
+  <div id="spur">GALLOP</div>
+  <div id="act" hidden>DISMOUNT</div>
+  <div id="help">W A S D to ride, hold Shift to gallop, drag or Q and E to swing the camera</div>
+</div>
+<div id="dialog" hidden role="dialog" aria-live="polite">
+  <b id="dName"></b>
+  <p id="dText"></p>
+  <div id="dChoices"></div>
+</div>
+<div id="journal" hidden role="dialog" aria-label="Journal">
+  <div id="jPage">
+    <header><h1>Journal</h1><button type="button" id="jClose">Close</button></header>
+    <div id="jBody"></div>
+  </div>
+</div>
+<div id="intro">
+  <h1>Sunset Territory</h1>
+  <p>A frontier valley, a horse, and nowhere you have to be. Ride out, find the towns and camps, and watch the day turn over the ridge line.</p>
+  <button id="start" type="button" disabled>Saddling up</button>
+  <p id="saveNote" hidden></p>
+  <div class="beta">BETA 0.3 · RIDE AND EXPLORE</div>
+</div>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
