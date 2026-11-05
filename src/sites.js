@@ -1,4 +1,4 @@
-import { BIG, naturalHeight as bigHeight, masks, hash } from './world.js';
+import { BIG, naturalHeight as bigHeight, masks, hash, riverInfo } from './world.js';
 
 // Settlements across the territory and the dirt roads between them. Pure and
 // deterministic, so the main thread and the terrain worker agree on every site.
@@ -52,7 +52,7 @@ function build() {
       const s = slopeAt(x, z);
       if (!best || s < best.s) best = { x, z, s };
     }
-    if (!best || best.s > 0.18) continue;
+    if (!best || best.s > 0.18 || riverInfo(best.x, best.z).bank > 0.05) continue;
     const m = masks(best.x, best.z), h = bigHeight(best.x, best.z);
     if (m.mountain > 0.45 || h > 190) continue;
     const r = hash(seed, 7.7);

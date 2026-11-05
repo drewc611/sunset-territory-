@@ -100,6 +100,32 @@ export function createTerrain(scene, renderer, base) {
         }`);
   };
 
+  // River water, shared by every chunk: animated normals from water.jpg and a
+  // fresnel toward the sky, like the lake.
+  const waterNormal = loader.load(`${base}assets/water.jpg`);
+  waterNormal.wrapS = waterNormal.wrapT = THREE.RepeatWrapping;
+  const waterMat = new THREE.MeshPhongMaterial({ color: 0x2a6278, specular: 0xffffff, shininess: 60, transparent: true, opacity: 0.85, normalMap: waterNormal, normalScale: new THREE.Vector2(0.9, 0.9), depthWrite: false });
+  const uSky = { value: new THREE.Color(0xd9b98c) }, uFlow = { value: 0 };
+  waterMat.onBeforeCompile = (sh) => {
+    sh.uniforms.uSky = uSky; sh.uniforms.uFlow = uFlow;
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nuniform float uFlow; varying vec2 vRiverUv;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvRiverUv = position.xz * 0.06 + vec2(uFlow, uFlow * 0.6);');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\nuniform vec3 uSky; varying vec2 vRiverUv;')
+      .replace('#include <normal_fragment_maps>', `
+        vec3 mapN = texture2D(normalMap, vRiverUv).xyz * 2.0 - 1.0;
+        mapN.xy *= normalScale;
+        normal = normalize(vec3(mapN.x, mapN.z, mapN.y) * 0.5 + vec3(0.0, 1.0, 0.0));
+        normal = normalize((viewMatrix * vec4(normal, 0.0)).xyz);`)
+      .replace('#include <opaque_fragment>', `
+        float fres = pow(1.0 - clamp(dot(normalize(vViewPosition), normal), 0.0, 1.0), 4.0);
+        outgoingLight = mix(outgoingLight, uSky * 0.85, 0.05 + 0.45 * fres);
+        diffuseColor.a = mix(0.7, 0.95, fres);
+        #include <opaque_fragment>`);
+  };
+  mat.userData.textures.push(waterNormal);
+
   // --- chunk streaming ---------------------------------------------------------
   const worker = new Worker(new URL('./terrain-worker.js', import.meta.url), { type: 'module' });
   const chunks = new Map(); // key -> { mesh, kind, cx, cz, drop }
@@ -151,6 +177,18 @@ export function createTerrain(scene, renderer, base) {
     queue.push(() => request({ type: 'chunk', x0: cx * size, z0: cz * size, size, res, drop }).then((r) => {
       const mesh = makeMesh(r);
       if (entry.mesh) { scene.remove(entry.mesh); entry.mesh.geometry.dispose(); }
+      if (entry.water) { scene.remove(entry.water); entry.water.geometry.dispose(); entry.water = null; }
+      if (r.water) {
+        const g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.BufferAttribute(r.water.pos, 3));
+        g.setIndex(new THREE.BufferAttribute(r.water.index, 1));
+        g.computeVertexNormals();
+        g.computeBoundingSphere();
+        entry.water = new THREE.Mesh(g, waterMat);
+        entry.water.renderOrder = 1;
+        entry.water.matrixAutoUpdate = false;
+        scene.add(entry.water);
+      }
       entry.mesh = mesh; entry.dropKey = dropKey; entry.loading = false;
       if (kind === 'n') entry.pos = r.pos; // kept for sampleHeight
       if (entry.wantDrop !== dropKey) dropBox = null; // the near square moved while this built: recheck
@@ -164,11 +202,14 @@ export function createTerrain(scene, renderer, base) {
     for (const c of chunks.values()) {
       if (!c.mesh) continue;
       if (c.kind === 'n') c.mesh.visible = Math.abs(c.cx - nearCX) <= tier.near && Math.abs(c.cz - nearCZ) <= tier.near;
+      if (c.water) c.water.visible = c.mesh.visible;
     }
   }
 
-  // Call every frame with the player position.
-  function update(px, pz) {
+  // Call every frame with the player position (and optionally the sky's horizon color).
+  function update(px, pz, sky = null) {
+    uFlow.value += 0.0004;
+    if (sky) uSky.value.copy(sky);
     const ncx = Math.floor(px / NEAR), ncz = Math.floor(pz / NEAR);
     if (ncx !== nearCX || ncz !== nearCZ || !dropBox) {
       nearCX = ncx; nearCZ = ncz;
@@ -192,6 +233,7 @@ export function createTerrain(scene, renderer, base) {
       for (const [k, c] of chunks) {
         if (keep.has(k) || c.loading) continue;
         if (c.mesh) { scene.remove(c.mesh); c.mesh.geometry.dispose(); }
+        if (c.water) { scene.remove(c.water); c.water.geometry.dispose(); }
         chunks.delete(k);
       }
       applyVisibility();

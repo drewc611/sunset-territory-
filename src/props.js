@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { WORLD, POIS, LAKE, LAKE_Y, hash, fbm, height, nearPOI, valleyBlend } from './world.js';
+import { WORLD, POIS, LAKE, LAKE_Y, hash, fbm, height, nearPOI, valleyBlend, riverInfo } from './world.js';
 import { surface } from './surface.js';
 import { sandArch, mineAdit, lookoutTower, missionRuin, Builder, pine, cottonwood, juniper, boulder, slab, shop, house, church, waterTower, streetBits, hitchRail, well, tent, campfire, wagon } from './models.js';
 
@@ -101,6 +101,7 @@ export function createProps(scene, base, sampleHeight = null) {
         const inValley = h >= -4 && h <= 12 ? 1 : 0;
         let out = 0;
         if (w > 0) { const sf = surface(x, z, h); out = Math.max(0, 1 - sf.dirt * 1.4 - sf.snow * 2); }
+        if (w > 0 && riverInfo(x, z).depth > -1.2) out = 0; // no grass in the river
         g = inValley * (1 - w) + out * w;
         coarse.set(k, g);
       }

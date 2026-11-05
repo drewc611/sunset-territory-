@@ -65,9 +65,29 @@ export function masks(x, z) {
 // cut into mesas.
 export function bigHeight(x, z) { return flattenSites(x, z, naturalHeight(x, z)); }
 
+// Rivers: winding channels along a contour of warped low frequency noise, about
+// 36 m across, fading out in high mountains and before the valley. riverInfo gives
+// how much the channel cuts into the land and how deep the water stands in it.
+const RIVER_MEAN = 0.919, RIVER_HW = 0.0035, CHANNEL = 3.5, WATER_BELOW = 3.4; // about 1.6 m of water at the deepest
+export function riverInfo(x, z, m = null) {
+  const v = valleyBlend(x, z);
+  if (v <= 0) return { carve: 0, core: 0, bank: 0, depth: 0 };
+  const wx = x + (fbm(x * 0.0007 + 3, z * 0.0007 + 8) - 0.97) * 900, wz = z + (fbm(x * 0.0007 + 40, z * 0.0007 + 21) - 0.97) * 900;
+  const d = Math.abs(fbm(wx * 0.00022 + 61, wz * 0.00022 + 17) - RIVER_MEAN) / RIVER_HW; // about meters / 18
+  if (d > 3) return { carve: 0, core: 0, bank: 0, depth: 0 };
+  const k = v * (1 - (m || masks(x, z)).mountain * 0.85);
+  const core = (1 - ss(0.55, 1.0, d)) * k, bank = (1 - ss(1.0, 3.0, d)) * k;
+  const carve = CHANNEL * core + 1.5 * bank;
+  return { carve, core, bank, depth: carve - WATER_BELOW };
+}
+
 // The land before settlements level it (used to choose where they go).
 export function naturalHeight(x, z) {
   const m = masks(x, z);
+  return naturalHeightRaw(x, z, m) - riverInfo(x, z, m).carve;
+}
+
+function naturalHeightRaw(x, z, m) {
   const continent = (fbm(x * 0.00028 + 13.1, z * 0.00028 + 5.7) - 0.97) * 120;
   const hills = (fbm(x * 0.0035 + 3, z * 0.0035 + 9) - 0.97) * 28;
   const mountains = m.mountain * ridged(x * 0.0016, z * 0.0016) * 170;
@@ -127,5 +147,11 @@ export function nearPOI(x, z, pad) {
 export function groundY(x, z) {
   let gy = height(x, z);
   if (Math.hypot(x - LAKE.x, z - LAKE.z) < LAKE.r) gy = Math.max(gy, LAKE_Y - 1.2);
+  // Rivers are fords: you wade with your head above water.
+  const r = riverInfo(x, z);
+  if (r.depth > 0) gy = Math.max(gy, waterY(x, z, gy, r) - 1.1);
   return gy;
 }
+
+// River surface height above (x, z), given the ground height there.
+export function waterY(x, z, h = height(x, z), r = riverInfo(x, z)) { return h + r.carve - WATER_BELOW; }

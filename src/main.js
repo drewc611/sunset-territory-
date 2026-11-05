@@ -413,7 +413,7 @@ renderer.setAnimationLoop((now) => {
   s.overcast = ambient.weather.overcast;
   s0night = s.night;
   ambient.update(dt, { clockH, dayIndex, night: s.night, camera });
-  terrain.update(focus.x, focus.z);
+  terrain.update(focus.x, focus.z, s.horizonTint);
   worldMap.reveal(focus.x, focus.z, shop.has('spyglass') ? 2 : 1);
   lantern.position.set(focus.x, focus.y + 2.2, focus.z);
   lantern.intensity = shop.has('lantern') ? s0night * 3.2 * Math.PI : 0;

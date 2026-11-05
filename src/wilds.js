@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { hash, fbm, height, masks, nearPOI } from './world.js';
+import { hash, fbm, height, masks, nearPOI, riverInfo } from './world.js';
 import { nearSite, roadAt } from './sites.js';
 import { pine, cottonwood, juniper, boulder, slab, cactus, sage, snag } from './models.js';
 
@@ -90,7 +90,9 @@ export function createWilds(scene, material, { sampleHeight, collision }) {
       const h = hAt(x, z);
       const slope = Math.min(1.5, Math.hypot(hAt(x + 2, z) - h, hAt(x, z + 2) - h) / 2);
       const grove = cl((fbm(x * 0.012 + 40, z * 0.012 + 70) - 0.85) * 2.2);
-      const kind = pick(x, z, h, m, r3, grove, slope);
+      const rv = riverInfo(x, z, m);
+      if (rv.core > 0.15) continue;
+      const kind = rv.bank > 0.2 && r3 < rv.bank * 0.12 ? 'cotton' : pick(x, z, h, m, r3, grove, slope);
       if (!kind) continue;
       const def = K[kind], vi = Math.floor(hash(id * 0.023, 4.7) * def.geos.length);
       const s = def.s[0] + hash(id * 0.029, 5.3) * (def.s[1] - def.s[0]);
