@@ -23,6 +23,7 @@ import { createAmbient } from './ambient.js';
 import { createPost } from './post.js';
 import { createWilds } from './wilds.js';
 import { createWildlife } from './wildlife.js';
+import { createTraffic } from './traffic.js';
 import { createWorldMap } from './worldmap.js';
 import { createSettlements } from './settlements.js';
 import { createLandmarks } from './landmarks.js';
@@ -84,6 +85,7 @@ let running = false;
 const collision = createCollision({ trees: props.trees.concat(npcs.circles), rocks: props.rocks, buildings: props.buildings });
 const updateCamera = (dt, f, c, onFoot) => cam.update(dt, f, c, onFoot, collision);
 const wildlife = createWildlife(scene, props.material, { sampleHeight: terrain.sampleHeight });
+const traffic = createTraffic(scene, props.material);
 const settlements = createSettlements(scene, props.material, { collision });
 const landmarkMeshes = createLandmarks(scene, props.material, { collision });
 const wilds = createWilds(scene, props.material, { sampleHeight: terrain.sampleHeight, collision });
@@ -217,7 +219,7 @@ input.onAction(act);
 input.onWhistle(whistle);
 input.onJournal(() => openJournal());
 document.getElementById('place').addEventListener('click', () => openJournal());
-if (import.meta.env.DEV || params.has('debug')) window.__game = { player, rider, foot, act, nearHorse, jobs, npcs, people, mount: () => mount(), dismount: () => dismount(), get shop() { return shop; }, get fishing() { return fishing; }, photo: (on) => togglePhoto(on), wildlife };
+if (import.meta.env.DEV || params.has('debug')) window.__game = { player, rider, foot, act, nearHorse, jobs, npcs, people, mount: () => mount(), dismount: () => dismount(), get shop() { return shop; }, get fishing() { return fishing; }, traffic, photo: (on) => togglePhoto(on), wildlife };
 
 function actionLabel() {
   if (fishing.active) return fishing.label(foot, player.mounted);
@@ -490,6 +492,7 @@ renderer.setAnimationLoop((now) => {
   settlements.update(focus.x, focus.z);
   landmarkMeshes.update(focus.x, focus.z);
   wildlife.update(dt, { x: focus.x, z: focus.z, speed: Math.abs(player.mounted ? rider.speed : foot.speed) });
+  traffic.update(dt, focus.x, focus.z);
   props.update(dt, s, focus);
   npcs.update(dt, focus);
   if (fishing.active && horse.rig.hand) { horse.rig.hand.updateWorldMatrix(true, false); horse.rig.hand.localToWorld(gripPos.set(0, -0.28, 0)); }
