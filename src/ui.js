@@ -1,5 +1,6 @@
 import { POIS } from './world.js';
 import { JOBS, DEED_PRICE } from './jobs.js';
+import { FISH } from './fishing.js';
 
 // Dialogue strip, money and job lines, notices, and the journal. Per docs/DESIGN.md:
 // serif on dark leather at the screen edges; the journal is a full page, not a card.
@@ -44,7 +45,7 @@ export function createUi({ onSetting, onNewGame }) {
 
   // Journal: places, work done, the deed, and settings.
   function renderJournal(ctx) {
-    const { jobs, discovered, settings } = ctx;
+    const { jobs, discovered, settings, fishing } = ctx;
     const st = jobs.state;
     const placeRows = POIS.map((p) => discovered[p.name]
       ? `<li><b>${p.name}</b> <i>${p.sub}</i></li>`
@@ -62,6 +63,7 @@ export function createUi({ onSetting, onNewGame }) {
       <section><h2>Work</h2>${deed}
         <p>${active ? `Current job: <b>${t ? t.label : labelFor(active)}</b>` : 'No job right now.'}</p>
         <ul>${doneRows}</ul></section>
+      ${fishRows(fishing)}
       <section><h2>Places</h2><ul>${placeRows}</ul></section>
       <section><h2>Settings</h2>
         <label><input type="checkbox" id="setSound" ${settings.sound !== false ? 'checked' : ''}> Sound</label>
@@ -77,6 +79,12 @@ export function createUi({ onSetting, onNewGame }) {
     $('setInvert').onchange = (e) => onSetting('invertCam', e.target.checked);
     $('setBig').onchange = (e) => onSetting('bigControls', e.target.checked);
     $('newGame').onclick = () => { if (confirm('Start over? Your money, jobs and map will be cleared.')) onNewGame(); };
+  }
+  function fishRows(fishing) {
+    if (!fishing || !Object.keys(fishing.best).length) return '';
+    const rows = Object.entries(fishing.best).map(([sp, lb]) => `<li>${FISH[sp].name[0].toUpperCase() + FISH[sp].name.slice(1)} <span>${lb} lb</span></li>`).join('');
+    const n = fishing.creel.length;
+    return `<section><h2>Fishing</h2><p>${n ? `${n} fish in the creel. A merchant will buy them.` : 'The creel is empty.'}</p><p>Biggest of each kind:</p><ul>${rows}</ul></section>`;
   }
   const labelFor = (j) => ({ nails: 'Nails to Caldwell Crossing', letter: 'Letter to Jory Banks', strays: 'Rounded up strays',
     ridge: 'Scouted Kettle Ridge', water: 'Lake water for Doc Wilder', pelts: "Widow Sarrow's pelts",

@@ -123,6 +123,20 @@ export function createAudio() {
     }
   }
 
+  // Water: a low passed slap of noise and a falling bloop. Casting, and a fish taking the float.
+  function splash(level = 0.4) {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    const s = ctx.createBufferSource(); s.buffer = noise;
+    const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(2400, t); f.frequency.exponentialRampToValueAtTime(500, t + 0.25);
+    const g = ctx.createGain(); g.gain.setValueAtTime(level * 0.5, t); g.gain.exponentialRampToValueAtTime(0.0005, t + 0.3);
+    s.connect(f).connect(g).connect(sfx); s.start(t, Math.random() * 1.5, 0.32);
+    const o = ctx.createOscillator(), og = ctx.createGain();
+    o.frequency.setValueAtTime(700, t); o.frequency.exponentialRampToValueAtTime(180, t + 0.12);
+    og.gain.setValueAtTime(level * 0.25, t); og.gain.exponentialRampToValueAtTime(0.0005, t + 0.14);
+    o.connect(og).connect(sfx); o.start(t); o.stop(t + 0.15);
+  }
+
   function chime() {
     if (!ctx) return;
     ['E4', 'A4', 'C5', 'E5'].forEach((n, i) => play(notes[n], 0.35, i * 0.07, 1, sfx));
@@ -184,7 +198,7 @@ export function createAudio() {
     if (document.hidden) ctx.suspend(); else ctx.resume();
   });
 
-  return { start, update, whistle, chime, bell, setMuted, get muted() { return muted; } };
+  return { start, update, whistle, chime, bell, splash, setMuted, get muted() { return muted; } };
 }
 
 const NOTE_HZ = {

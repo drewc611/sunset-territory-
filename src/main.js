@@ -17,6 +17,7 @@ import { createPeople } from './people.js';
 import { createJobs } from './jobs.js';
 import { createUi } from './ui.js';
 import { createAudio } from './audio.js';
+import { createFishing } from './fishing.js';
 import { createQuality } from './quality.js';
 import { createAmbient } from './ambient.js';
 import { createPost } from './post.js';
@@ -185,10 +186,11 @@ function talkable() {
 
 function act() {
   if (ui.busy) return;
+  if (fishing.active) { fishing.act(foot, player.mounted); return; }
   const who = talkable();
   if (who) {
     const d = jobs.talk(who.id);
-    const extra = shop.extras(who, focusOf(), (next) => ui.showDialog(next));
+    const extra = shop.extras(who, focusOf(), (next) => ui.showDialog(next)).concat(fishing.extras(who, sellCatch));
     if (extra.length) d.choices = d.choices.slice(0, -1).concat(extra, d.choices.slice(-1));
     ui.showDialog(d);
     return;
@@ -196,7 +198,13 @@ function act() {
   if (canSleep()) { sleep(); return; }
   if (player.mounted) dismount();
   else if (nearHorse()) mount();
-  else whistle();
+  else if (!fishing.act(foot, player.mounted)) whistle();
+}
+function sellCatch(total, n) {
+  jobs.state.money += total;
+  audio.chime();
+  ui.toast(`Sold ${n} fish for $${total}. You have $${jobs.state.money}.`, 5);
+  persist();
 }
 function whistle() {
   if (player.mounted) return;
@@ -207,13 +215,14 @@ input.onAction(act);
 input.onWhistle(whistle);
 input.onJournal(() => openJournal());
 document.getElementById('place').addEventListener('click', () => openJournal());
-if (import.meta.env.DEV || params.has('debug')) window.__game = { player, rider, foot, act, nearHorse, jobs, npcs, people, mount: () => mount(), dismount: () => dismount(), get shop() { return shop; }, wildlife };
+if (import.meta.env.DEV || params.has('debug')) window.__game = { player, rider, foot, act, nearHorse, jobs, npcs, people, mount: () => mount(), dismount: () => dismount(), get shop() { return shop; }, get fishing() { return fishing; }, wildlife };
 
 function actionLabel() {
+  if (fishing.active) return fishing.label(foot, player.mounted);
   if (talkable()) return 'TALK';
   if (canSleep()) return 'SLEEP';
   if (player.mounted) return Math.abs(rider.speed) > 3 ? null : 'DISMOUNT';
-  return nearHorse() ? 'MOUNT' : 'WHISTLE';
+  return nearHorse() ? 'MOUNT' : fishing.label(foot, false) || 'WHISTLE';
 }
 
 // UI, journal and settings.
@@ -234,6 +243,7 @@ const shop = createShop({
   onBuy(g) { audio.chime(); ui.toast(`Bought the ${g.name.toLowerCase()}. You have $${jobs.state.money}.`, 5); persist(); },
   onStage(town, km) { stageTo(town, km); },
 });
+const fishing = createFishing({ scene, audio, ui, shop });
 const lantern = new THREE.PointLight(0xffc070, 0, 24, 2);
 scene.add(lantern);
 let s0night = 0; // last frame's night amount, for the lantern and the bedroll
@@ -284,7 +294,7 @@ const worldMap = createWorldMap({ terrain, discovered: hud.discovered, getPlayer
 input.onMap(() => worldMap.toggle());
 if (params.has('reveal')) for (let z = -9750; z < 10000; z += 1500) for (let x = -9750; x < 10000; x += 1500) worldMap.reveal(x, z); // ?reveal, for testing
 document.getElementById('map').addEventListener('click', () => worldMap.open());
-function openJournal() { ui.toggleJournal({ jobs, discovered: hud.discovered, settings }); }
+function openJournal() { ui.toggleJournal({ jobs, discovered: hud.discovered, settings, fishing }); }
 
 // The homestead appears once the deed is bought.
 let homeBuilt = false;
@@ -333,6 +343,7 @@ function persist() {
     discovered: Object.keys(hud.discovered),
     revealed: worldMap.revealedList(),
     owned: shop.list(),
+    fishing: fishing.save(),
     jobs: { money: jobs.state.money, done: jobs.state.done, active: jobs.state.active, deed: jobs.state.deed, genDone: jobs.state.genDone },
     intro: introSeen,
   });
@@ -349,6 +360,7 @@ if (saved) {
   (saved.discovered || []).forEach((n) => { hud.discovered[n] = true; });
   worldMap.loadRevealed(saved.revealed);
   shop.load(saved.owned);
+  fishing.load(saved.fishing);
   jobs.load(saved.jobs);
   if (jobs.state.deed) buildHomestead();
   introSeen = !!saved.intro;
@@ -430,6 +442,7 @@ renderer.setAnimationLoop((now) => {
   wildlife.update(dt, { x: focus.x, z: focus.z, speed: Math.abs(player.mounted ? rider.speed : foot.speed) });
   props.update(dt, s, focus);
   npcs.update(dt, focus);
+  fishing.update(dt, foot, player.mounted, now / 1000);
   jobs.update(dt, focus, player.mounted, rider.speed, s.night);
   hud.update(focus, clockH, { onFoot: !player.mounted, action: ui.busy ? null : actionLabel(), target: jobs.target() });
   ui.update(dt, jobs);

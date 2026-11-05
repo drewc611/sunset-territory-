@@ -8,6 +8,7 @@ export const GOODS = [
   { id: 'saddle', name: 'Fine saddle', price: 40, about: 'Lighter and better fitted. Your horse gallops a good deal faster.' },
   { id: 'lantern', name: 'Brass lantern', price: 15, about: 'Hangs from the saddle and lights the ground around you after dark.' },
   { id: 'spyglass', name: 'Spyglass', price: 25, about: 'Your map fills in much farther around you as you ride.' },
+  { id: 'rod', name: 'Fishing rod', price: 5, about: "Cast from the bank of the lake or a river. I'll buy whatever you catch." },
   { id: 'bedroll', name: 'Bedroll', price: 12, about: 'Sleep where you stand, on foot, from dusk until dawn. Press B.' },
 ];
 
