@@ -9,3 +9,4 @@ Rule for every future asset: CC0, MIT, or made for this project. Record source a
 - Cactus, sage, dead snags (src/models.js) and the 20 km territory's terrain: generated in code for this project, no license restriction.
 - The jointed horse (src/horse-rig.js): built in code for this project, no license restriction. Horse.glb is kept for ?horse=glb.
 - Fonts, loaded from Google Fonts: Rye by Nicole Fally and Vollkorn by Friedrich Althausen, both under the SIL Open Font License 1.1 (google/fonts repository, ofl/rye and ofl/vollkorn METADATA.pb).
+- Deer, pronghorn and cattle (src/wildlife.js): built in code for this project, no license restriction.
