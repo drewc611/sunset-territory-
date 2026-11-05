@@ -7,7 +7,7 @@ import { createRig } from './character.js';
 // and drops its head to graze. Facing +z, hooves at y = 0, about 1.5 m at the withers.
 // Same interface as horse.js: { root, rig, seat, update, ready }.
 
-const COAT = 0x7a4a2a, DARK = 0x2a1a10, HOOF = 0x1c1410, BLAZE = 0xe8dcc8, BLANKET = 0x8a2b2b, LEATHER = 0x4a2e1b;
+const COAT = 0x96603a, DARK = 0x33201a, HOOF = 0x1c1410, BLAZE = 0xe8dcc8, BLANKET = 0x8a2b2b, LEATHER = 0x4a2e1b;
 
 function part(fn) { const b = new Builder(); fn(b); return b.build(); }
 

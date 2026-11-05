@@ -17,7 +17,7 @@ The phased plan with exit gates is docs/SCHEDULE.md, compressed to finish by Nov
 
 ## The job
 Port the prototype into src/ as modules and replace the primitive look with real assets and materials, in this order:
-1. Horse: load Horse.glb (one clip named horse_A_). Scale about 0.0095, head faces +Z. Drive animation timeScale from speed. Rider is a separate rig parented to the horse at saddle height.
+1. Horse (done; since replaced by the jointed horse in src/horse-rig.js, see docs/HANDOVER.md): load Horse.glb (one clip named horse_A_). Scale about 0.0095, head faces +Z. Drive animation timeScale from speed. Rider is a separate rig parented to the horse at saddle height.
 2. Terrain: textured, not vertex colored. Grass, rock, dirt blended by slope and height in a custom shader (onBeforeCompile on MeshStandardMaterial). Triplanar for rock on steep slopes. Normal maps.
 3. Trees and props: replace cones and boxes with GLTF models from a CC0 pack (Kenney Nature Kit, Quaternius). Instance them.
 4. Water: animated normal map (water.jpg) with fresnel; planar reflection if it stays at 60fps.
