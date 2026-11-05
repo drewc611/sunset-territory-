@@ -33,7 +33,8 @@ Andrew asked for no open decisions and a finished game by the end of November, s
 - No floating origin yet: 32 bit positions at 10 km are good to about 1 mm, which is fine for terrain and riding. Revisit if shadows or the camera shimmer at the edges.
 - The horse rework (jointed horse with walk, trot and gallop) is parked on claude/horse-gaits; it needs a side by side review before it replaces Horse.glb.
 
-- Generated work: 90 residents across the 54 settlements. Anyone whose written jobs are done, valley folk included, offers deliveries to someone 0.8 to 6 km away in another settlement, paid by distance (fragile loads pay more and fail at a gallop). The work never runs out; money past the $60 deed has nothing to buy yet.
+- Generated work: 90 residents across the 54 settlements. Anyone whose written jobs are done, valley folk included, offers deliveries to someone 0.8 to 6 km away in another settlement, paid by distance (fragile loads pay more and fail at a gallop). The work never runs out.
+- Money sinks: merchants sell a fine saddle ($40, gallop 25 to 30 m/s), a lantern ($15), a spyglass ($25, map reveals 2.5 km around you instead of 1.5) and a bedroll ($12, sleep until dawn on foot at night). Marshals and sheriffs sell stage tickets to towns you've found, $2 plus $1.50 a km, taking about an hour of game time per 12 km.
 
 ## Known gaps
 - Horse.glb has only a gallop clip. Standing holds the best frame (all hooves down); walking plays the gallop slowed. A walk and idle need a new horse model or clips.

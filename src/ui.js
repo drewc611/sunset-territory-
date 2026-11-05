@@ -21,6 +21,7 @@ export function createUi({ onSetting, onNewGame }) {
       const b = document.createElement('button');
       b.type = 'button';
       b.textContent = c.label;
+      if (c.disabled) { b.disabled = true; b.title = 'Not enough money'; }
       b.addEventListener('click', () => { closeDialog(); c.run(); });
       dChoices.appendChild(b);
       if (i === 0) setTimeout(() => b.focus({ preventScroll: true }), 0);
@@ -31,7 +32,7 @@ export function createUi({ onSetting, onNewGame }) {
   addEventListener('keydown', (e) => {
     if (!open) return;
     const n = Number(e.key);
-    if (n >= 1 && n <= open.choices.length) { const c = open.choices[n - 1]; closeDialog(); c.run(); }
+    if (n >= 1 && n <= open.choices.length) { const c = open.choices[n - 1]; if (c.disabled) return; closeDialog(); c.run(); }
     if (e.key === 'Escape') closeDialog();
   });
 
