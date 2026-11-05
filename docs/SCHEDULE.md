@@ -13,7 +13,7 @@ The territory (Andrew, Nov 4): 20 km x 20 km, 400 km², with the hand built vall
   a. Streamed terrain, biomes in the ground shader, player-centered minimap. Done Nov 4.
   b. Per chunk trees, rocks and grass by biome. Done Nov 4. Rivers still to come.
   c. Zoomable full map with discovered regions. Done Nov 4.
-  d. Procedural towns, ranches and camps on dirt roads, with townsfolk and generated jobs.
+  d. Procedural towns, ranches and camps on dirt roads (done Nov 4), then townsfolk and generated jobs in them.
   e. Draw distance and chunk counts per quality tier (started in a), checked with ?bench.
 
 Dropped for November: closed beta with telemetry, commissioned music (the game ships with its synthesized score), the App Store shell.

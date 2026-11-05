@@ -20,6 +20,7 @@ import { createAmbient } from './ambient.js';
 import { createPost } from './post.js';
 import { createWilds } from './wilds.js';
 import { createWorldMap } from './worldmap.js';
+import { createSettlements } from './settlements.js';
 import { loadGame, saveGame, clearGame, loadSettings, saveSettings } from './save.js';
 import { house, hitchRail } from './models.js';
 import { POIS, HOME } from './world.js';
@@ -75,6 +76,7 @@ let running = false;
 
 const collision = createCollision({ trees: props.trees.concat(npcs.circles), rocks: props.rocks, buildings: props.buildings });
 const updateCamera = (dt, f, c, onFoot) => cam.update(dt, f, c, onFoot, collision);
+const settlements = createSettlements(scene, props.material, { collision });
 const wilds = createWilds(scene, props.material, { sampleHeight: terrain.sampleHeight, collision });
 quality.onTier((t) => wilds.setTier(t));
 const HORSE_R = 0.85, FOOT_R = 0.32;
@@ -347,6 +349,7 @@ renderer.setAnimationLoop((now) => {
   terrain.update(focus.x, focus.z);
   worldMap.reveal(focus.x, focus.z);
   wilds.update(focus.x, focus.z);
+  settlements.update(focus.x, focus.z);
   props.update(dt, s, focus);
   npcs.update(dt, focus);
   jobs.update(dt, focus, player.mounted, rider.speed, s.night);
@@ -378,6 +381,7 @@ function start() {
 const startBtn = document.getElementById('start');
 Promise.all([horse.ready, terrain.settle(rider.x, rider.z)]).then(() => {
   wilds.settle(rider.x, rider.z);
+  settlements.settle(rider.x, rider.z);
   // Compile shaders before the first frame so riding doesn't hitch on start.
   horse.root.position.set(rider.x, rider.y, rider.z);
   snapCamera(rider);

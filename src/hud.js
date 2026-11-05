@@ -1,4 +1,5 @@
 import { POIS } from './world.js';
+import { sites, nearSite } from './sites.js';
 
 // Place name, clock, pace, discovery stamp and minimap. Markup lives in index.html.
 // heading 0 moves +z, which is down (south) on the minimap. The prototype's list was reversed
@@ -48,6 +49,7 @@ export function createHud(terrain) {
   function update(rider, clockH, opts = {}) {
     let here = null;
     for (const p of POIS) if (Math.hypot(rider.x - p.x, rider.z - p.z) < p.r) here = p;
+    if (!here) here = nearSite(rider.x, rider.z, 6);
     if (here && here !== lastPOI) {
       lastPOI = here;
       if (!discovered[here.name]) {
@@ -97,7 +99,7 @@ export function createHud(terrain) {
       const sx = (rider.x - SPAN / 2 - (mapCenter.x - IMG / 2)) * k, sz = (rider.z - SPAN / 2 - (mapCenter.z - IMG / 2)) * k;
       mctx.drawImage(mapBase, sx, sz, SPAN * k, SPAN * k, 0, 0, MS, MS);
     }
-    for (const p of POIS) {
+    for (const p of POIS.concat(sites())) {
       if (!discovered[p.name]) continue;
       const [mx, mz] = toMap(p.x, p.z, rider);
       if (mx < -4 || mz < -4 || mx > MS + 4 || mz > MS + 4) continue;
