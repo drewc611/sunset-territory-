@@ -22,10 +22,10 @@ export function createWorldMap({ terrain, discovered, getPlayer, getTarget }) {
 
   // --- discovery -------------------------------------------------------------
   const rkey = (i, j) => `${i},${j}`;
-  function reveal(x, z) {
+  function reveal(x, z, r = 1) {
     const i = Math.floor(x / REVEAL), j = Math.floor(z / REVEAL);
     let added = false;
-    for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+    for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) {
       const k = rkey(i + di, j + dj);
       if (!revealed.has(k)) { revealed.add(k); added = true; }
     }

@@ -22,6 +22,7 @@ import { createPost } from './post.js';
 import { createWilds } from './wilds.js';
 import { createWorldMap } from './worldmap.js';
 import { createSettlements } from './settlements.js';
+import { createShop } from './shop.js';
 import { loadGame, saveGame, clearGame, loadSettings, saveSettings } from './save.js';
 import { house, hitchRail } from './models.js';
 import { POIS, HOME } from './world.js';
@@ -120,7 +121,8 @@ function stepHorse(dt, ctl, ridden) {
       }
     }
   }
-  const target = fwd > 0 ? (gallop ? 25 : fwd * 10) : fwd < 0 ? -4 : 0;
+  const top = shop.has('saddle') ? 30 : 25; // the fine saddle
+  const target = fwd > 0 ? (gallop ? top : fwd * 10) : fwd < 0 ? -4 : 0;
   rider.speed += (target - rider.speed) * Math.min(1, dt * (fwd ? 1.6 : 3));
   rider.heading += turn * dt * (1.7 - Math.min(1, Math.abs(rider.speed) / 25) * 0.7);
   move(rider, dt, HORSE_R, 1.4);
@@ -181,7 +183,14 @@ function talkable() {
 function act() {
   if (ui.busy) return;
   const who = talkable();
-  if (who) { ui.showDialog(jobs.talk(who.id)); return; }
+  if (who) {
+    const d = jobs.talk(who.id);
+    const extra = shop.extras(who, focusOf(), (next) => ui.showDialog(next));
+    if (extra.length) d.choices = d.choices.slice(0, -1).concat(extra, d.choices.slice(-1));
+    ui.showDialog(d);
+    return;
+  }
+  if (canSleep()) { sleep(); return; }
   if (player.mounted) dismount();
   else if (nearHorse()) mount();
   else whistle();
@@ -195,10 +204,11 @@ input.onAction(act);
 input.onWhistle(whistle);
 input.onJournal(() => openJournal());
 document.getElementById('place').addEventListener('click', () => openJournal());
-if (import.meta.env.DEV || params.has('debug')) window.__game = { player, rider, foot, act, nearHorse, jobs, npcs, people };
+if (import.meta.env.DEV || params.has('debug')) window.__game = { player, rider, foot, act, nearHorse, jobs, npcs, people, mount: () => mount(), dismount: () => dismount(), get shop() { return shop; } };
 
 function actionLabel() {
   if (talkable()) return 'TALK';
+  if (canSleep()) return 'SLEEP';
   if (player.mounted) return Math.abs(rider.speed) > 3 ? null : 'DISMOUNT';
   return nearHorse() ? 'MOUNT' : 'WHISTLE';
 }
@@ -215,6 +225,58 @@ const ui = createUi({
   },
   onNewGame() { clearGame(); location.reload(); },
 });
+// --- the store, the stagecoach, and what they sell -------------------------------
+const shop = createShop({
+  jobs, discovered: hud.discovered,
+  onBuy(g) { audio.chime(); ui.toast(`Bought the ${g.name.toLowerCase()}. You have $${jobs.state.money}.`, 5); persist(); },
+  onStage(town, km) { stageTo(town, km); },
+});
+const lantern = new THREE.PointLight(0xffc070, 0, 24, 2);
+scene.add(lantern);
+let s0night = 0; // last frame's night amount, for the lantern and the bedroll
+input.onBed(() => { if (canSleep()) sleep(); });
+
+function canSleep() {
+  return shop.has('bedroll') && !player.mounted && s0night > 0.5 && !talkable() && !nearHorse();
+}
+const fade = document.getElementById('fade');
+function fadeThrough(text, during) {
+  fade.textContent = text;
+  fade.classList.add('on');
+  running = false;
+  setTimeout(async () => {
+    await during();
+    setTimeout(() => { fade.classList.remove('on'); running = true; last = performance.now(); }, 400);
+  }, 700);
+}
+function sleep() {
+  fadeThrough('You sleep under the stars until first light.', () => {
+    if (clockH > 6) dayIndex++;
+    clockH = 6;
+    persist();
+  });
+}
+function stageTo(town, km) {
+  fadeThrough(`On the stage to ${town.name}`, async () => {
+    if (!player.mounted) mount();
+    // Step down at the edge of town, on the side facing the valley.
+    const a = Math.atan2(-town.z, -town.x);
+    const x = town.x + Math.cos(a) * (town.r + 12), z = town.z + Math.sin(a) * (town.r + 12);
+    Object.assign(rider, { x, z, speed: 0, heading: Math.atan2(town.x - x, town.z - z) });
+    rider.y = groundY(x, z);
+    clockH += km / 12; // the stage makes about 12 km an hour
+    if (clockH >= 24) { clockH -= 24; dayIndex++; }
+    await terrain.settle(x, z);
+    wilds.settle(x, z);
+    settlements.settle(x, z);
+    horse.root.position.set(rider.x, rider.y, rider.z);
+    horse.root.rotation.y = rider.heading;
+    snapCamera(rider);
+    audio.chime();
+    persist();
+  });
+}
+
 const worldMap = createWorldMap({ terrain, discovered: hud.discovered, getPlayer: () => focusOf(), getTarget: () => jobs.target() });
 input.onMap(() => worldMap.toggle());
 if (params.has('reveal')) for (let z = -9750; z < 10000; z += 1500) for (let x = -9750; x < 10000; x += 1500) worldMap.reveal(x, z); // ?reveal, for testing
@@ -267,6 +329,7 @@ function persist() {
     mounted: player.mounted, clockH, dayIndex,
     discovered: Object.keys(hud.discovered),
     revealed: worldMap.revealedList(),
+    owned: shop.list(),
     jobs: { money: jobs.state.money, done: jobs.state.done, active: jobs.state.active, deed: jobs.state.deed, genDone: jobs.state.genDone },
     intro: introSeen,
   });
@@ -282,6 +345,7 @@ if (saved) {
   dayIndex = saved.dayIndex | 0;
   (saved.discovered || []).forEach((n) => { hud.discovered[n] = true; });
   worldMap.loadRevealed(saved.revealed);
+  shop.load(saved.owned);
   jobs.load(saved.jobs);
   if (jobs.state.deed) buildHomestead();
   introSeen = !!saved.intro;
@@ -347,9 +411,12 @@ renderer.setAnimationLoop((now) => {
   if (clockH >= 24) { clockH -= 24; dayIndex++; }
   const s = sky.update(clockH, focusVec.set(focus.x, focus.y, focus.z), camera, ambient.weather.overcast); // shadows follow the player
   s.overcast = ambient.weather.overcast;
+  s0night = s.night;
   ambient.update(dt, { clockH, dayIndex, night: s.night, camera });
   terrain.update(focus.x, focus.z);
-  worldMap.reveal(focus.x, focus.z);
+  worldMap.reveal(focus.x, focus.z, shop.has('spyglass') ? 2 : 1);
+  lantern.position.set(focus.x, focus.y + 2.2, focus.z);
+  lantern.intensity = shop.has('lantern') ? s0night * 3.2 * Math.PI : 0;
   wilds.update(focus.x, focus.z);
   settlements.update(focus.x, focus.z);
   props.update(dt, s, focus);
