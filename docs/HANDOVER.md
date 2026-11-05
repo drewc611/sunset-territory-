@@ -40,6 +40,8 @@ Andrew asked for no open decisions and a finished game by the end of November, s
 
 - Far trees: beyond the full detail tree cells (up to 4 cells, about 580 m), a ring of one-cone or one-blob trees on a 16 m grid fills out to 6 cells on Medium and 8 on High (about 830 and 1,090 m), no shadows or collision. Low has none. Decided against billboards: low poly cones match the art and need no texture atlas.
 
+- Wildlife: herds placed per 512 m cell (deer where it's wet, pronghorn where it's dry, about 4 in 10 cells outside mountains and canyons) plus a cattle herd at every ranch. Deer bolt inside 34 m and pronghorn inside 45 m when you're moving, run about 6 s, and settle where they stop; cattle only wander. Two draw calls per species. No hunting: the game's tone stays peaceful.
+
 ## Launch checklist (Nov 4)
 - Name: a web search for "Sunset Territory" found no game with that title. The closest are Sunset Land (a frontier survival RPG on Steam, planned for Sep 2026) and Sunset Rangers (a western sandbox). This is not a legal trademark search; do one (USPTO and EUIPO) before anything commercial.
 - Licenses: every file in public/ and every font is logged in public/assets/LICENSES.md: MIT (three.js horse and textures), SIL OFL 1.1 (Rye, Vollkorn), or made for this project (everything else, including all sound).

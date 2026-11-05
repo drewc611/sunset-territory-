@@ -21,6 +21,7 @@ import { createQuality } from './quality.js';
 import { createAmbient } from './ambient.js';
 import { createPost } from './post.js';
 import { createWilds } from './wilds.js';
+import { createWildlife } from './wildlife.js';
 import { createWorldMap } from './worldmap.js';
 import { createSettlements } from './settlements.js';
 import { createShop } from './shop.js';
@@ -80,6 +81,7 @@ let running = false;
 
 const collision = createCollision({ trees: props.trees.concat(npcs.circles), rocks: props.rocks, buildings: props.buildings });
 const updateCamera = (dt, f, c, onFoot) => cam.update(dt, f, c, onFoot, collision);
+const wildlife = createWildlife(scene, props.material, { sampleHeight: terrain.sampleHeight });
 const settlements = createSettlements(scene, props.material, { collision });
 const wilds = createWilds(scene, props.material, { sampleHeight: terrain.sampleHeight, collision });
 quality.onTier((t) => wilds.setTier(t));
@@ -205,7 +207,7 @@ input.onAction(act);
 input.onWhistle(whistle);
 input.onJournal(() => openJournal());
 document.getElementById('place').addEventListener('click', () => openJournal());
-if (import.meta.env.DEV || params.has('debug')) window.__game = { player, rider, foot, act, nearHorse, jobs, npcs, people, mount: () => mount(), dismount: () => dismount(), get shop() { return shop; } };
+if (import.meta.env.DEV || params.has('debug')) window.__game = { player, rider, foot, act, nearHorse, jobs, npcs, people, mount: () => mount(), dismount: () => dismount(), get shop() { return shop; }, wildlife };
 
 function actionLabel() {
   if (talkable()) return 'TALK';
@@ -425,6 +427,7 @@ renderer.setAnimationLoop((now) => {
   lantern.intensity = shop.has('lantern') ? s0night * 3.2 * Math.PI : 0;
   wilds.update(focus.x, focus.z);
   settlements.update(focus.x, focus.z);
+  wildlife.update(dt, { x: focus.x, z: focus.z, speed: Math.abs(player.mounted ? rider.speed : foot.speed) });
   props.update(dt, s, focus);
   npcs.update(dt, focus);
   jobs.update(dt, focus, player.mounted, rider.speed, s.night);
