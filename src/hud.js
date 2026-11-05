@@ -1,33 +1,35 @@
-import { WORLD, POIS, LAKE, height } from './world.js';
+import { POIS } from './world.js';
 
 // Place name, clock, pace, discovery stamp and minimap. Markup lives in index.html.
 // heading 0 moves +z, which is down (south) on the minimap. The prototype's list was reversed
 // against its own map; this order matches the map.
 const compass = ['south', 'south east', 'east', 'north east', 'north', 'north west', 'west', 'south west'];
 
-export function createHud() {
+export function createHud(terrain) {
   const $ = (id) => document.getElementById(id);
   const placeName = $('placeName'), placeSub = $('placeSub'), timeEl = $('time'), paceEl = $('pace'), stamp = $('stamp');
   const map = $('map'), mctx = map.getContext('2d');
   const MS = map.width;
 
+  // Minimap: a SPAN meter window centered on the player. The terrain worker draws a
+  // larger image (IMG) around a center, and it's re-requested once you ride far enough
+  // from that center; in between the image just scrolls.
+  const SPAN = 900, IMG = 1800, IMG_PX = 200;
   const mapBase = document.createElement('canvas');
-  mapBase.width = mapBase.height = MS;
-  {
-    const c = mapBase.getContext('2d'), img = c.createImageData(MS, MS);
-    for (let j = 0; j < MS; j++) for (let i = 0; i < MS; i++) {
-      const x = (i / MS - 0.5) * WORLD, z = (j / MS - 0.5) * WORLD, h = height(x, z);
-      let r, g, b;
-      if (Math.hypot(x - LAKE.x, z - LAKE.z) < LAKE.r - 1) { r = 45; g = 85; b = 105; }
-      else if (h < -6) { r = 160; g = 135; b = 90; }
-      else if (h < 9) { r = 95; g = 110; b = 60; }
-      else if (h < 24) { r = 110; g = 100; b = 85; }
-      else { r = 170; g = 160; b = 150; }
-      const k = (j * MS + i) * 4;
-      img.data[k] = r; img.data[k + 1] = g; img.data[k + 2] = b; img.data[k + 3] = 255;
-    }
-    c.putImageData(img, 0, 0);
+  mapBase.width = mapBase.height = IMG_PX;
+  let mapCenter = null, mapLoading = false;
+  function refreshMap(x, z) {
+    if (mapLoading || !terrain) return;
+    mapLoading = true;
+    const cx = Math.round(x / 100) * 100, cz = Math.round(z / 100) * 100;
+    terrain.map(cx, cz, IMG, IMG_PX).then((m) => {
+      mapBase.getContext('2d').putImageData(new ImageData(m.px, m.size, m.size), 0, 0);
+      mapCenter = { x: m.cx, z: m.cz };
+      mapLoading = false;
+    });
   }
+  // World point to minimap pixel, with the player at the center.
+  const toMap = (x, z, rider) => [MS / 2 + (x - rider.x) / SPAN * MS, MS / 2 + (z - rider.z) / SPAN * MS];
 
   const discovered = {};
   let lastPOI = null, lastText = '';
@@ -86,10 +88,19 @@ export function createHud() {
     }
     if (s + pace !== lastText) { lastText = s + pace; timeEl.textContent = s; paceEl.textContent = pace; }
 
-    mctx.drawImage(mapBase, 0, 0);
+    if (!mapCenter || Math.hypot(rider.x - mapCenter.x, rider.z - mapCenter.z) > (IMG - SPAN) / 2 - 150) refreshMap(rider.x, rider.z);
+    mctx.fillStyle = '#2b2316';
+    mctx.fillRect(0, 0, MS, MS);
+    if (mapCenter) {
+      // Draw the part of the big image under the window.
+      const k = IMG_PX / IMG;
+      const sx = (rider.x - SPAN / 2 - (mapCenter.x - IMG / 2)) * k, sz = (rider.z - SPAN / 2 - (mapCenter.z - IMG / 2)) * k;
+      mctx.drawImage(mapBase, sx, sz, SPAN * k, SPAN * k, 0, 0, MS, MS);
+    }
     for (const p of POIS) {
       if (!discovered[p.name]) continue;
-      const mx = (p.x / WORLD + 0.5) * MS, mz = (p.z / WORLD + 0.5) * MS;
+      const [mx, mz] = toMap(p.x, p.z, rider);
+      if (mx < -4 || mz < -4 || mx > MS + 4 || mz > MS + 4) continue;
       // Shape as well as color, so markers read without color vision.
       mctx.fillStyle = p.type === 'camp' ? '#ff8c3a' : p.type === 'town' ? '#c9a24d' : '#d8c7a1';
       mctx.strokeStyle = '#1b140d'; mctx.lineWidth = 1;
@@ -101,11 +112,14 @@ export function createHud() {
     }
     if (opts.target) {
       // Job marker: a brass ring that pulses.
-      const tx = (opts.target.x / WORLD + 0.5) * MS, tz = (opts.target.z / WORLD + 0.5) * MS;
+      // Off the window: pin the ring to the edge, toward the target.
+      let [tx, tz] = toMap(opts.target.x, opts.target.z, rider);
+      const ex = tx - MS / 2, ez = tz - MS / 2, lim = MS / 2 - 6, far = Math.max(Math.abs(ex), Math.abs(ez));
+      if (far > lim) { tx = MS / 2 + ex / far * lim; tz = MS / 2 + ez / far * lim; }
       mctx.strokeStyle = '#c9a24d'; mctx.lineWidth = 2;
       mctx.beginPath(); mctx.arc(tx, tz, 4 + (Math.sin(performance.now() * 0.006) + 1) * 1.5, 0, Math.PI * 2); mctx.stroke();
     }
-    const px = (rider.x / WORLD + 0.5) * MS, pz = (rider.z / WORLD + 0.5) * MS;
+    const px = MS / 2, pz = MS / 2;
     mctx.save();
     mctx.translate(px, pz);
     mctx.rotate(-rider.heading);

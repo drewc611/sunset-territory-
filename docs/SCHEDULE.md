@@ -9,6 +9,13 @@ Andrew moved the finish to the end of November. The phases below still define th
 - Nov 19 to 25: the Phase 4 checklist: 20 minute thermal run, accessibility pass, name trademark search, LICENSES.md audit.
 - Nov 26 to 30: soft launch of the public link.
 
+The territory (Andrew, Nov 4): 20 km x 20 km, 400 km², with the hand built valley at the center.
+  a. Streamed terrain, biomes in the ground shader, player-centered minimap. Done Nov 4.
+  b. Per chunk trees, rocks and grass by biome; rivers.
+  c. Zoomable full map with discovered regions.
+  d. Procedural towns, ranches and camps on dirt roads, with townsfolk and generated jobs.
+  e. Draw distance and chunk counts per quality tier (started in a), checked with ?bench.
+
 Dropped for November: closed beta with telemetry, commissioned music (the game ships with its synthesized score), the App Store shell.
 
 Studio style phases, solo dev plus Claude Code. Each phase has a goal, deliverables, an exit gate, and a kill switch. No phase starts until the previous gate passes on Andrew's iPhone, not in a desktop browser. Dates are elapsed weeks from the day src/ port starts.

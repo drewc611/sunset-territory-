@@ -28,6 +28,11 @@ Andrew asked for no open decisions and a finished game by the end of November, s
 - The first in-game day is always clear weather.
 - Second job chain: four landmark jobs (Danner Mine, Sandstone Arch, Lookout Tower at night, Old Mission bell), unlocked by finishing jobs in the first chain. They pay on top of the deed money; there's nothing yet to spend the extra on.
 
+## The territory
+- 20 km x 20 km. Terrain streams in 256 m chunks near the player and 1 km chunks out to the fog, built in a web worker (src/terrain-worker.js). Height and biome rules live in src/world.js and src/surface.js and are shared by the worker, collision and the minimap.
+- No floating origin yet: 32 bit positions at 10 km are good to about 1 mm, which is fine for terrain and riding. Revisit if shadows or the camera shimmer at the edges.
+- The horse rework (jointed horse with walk, trot and gallop) is parked on claude/horse-gaits; it needs a side by side review before it replaces Horse.glb.
+
 ## Known gaps
 - Horse.glb has only a gallop clip. Standing holds the best frame (all hooves down); walking plays the gallop slowed. A walk and idle need a new horse model or clips.
 - No iPhone measurements yet. The graphics budget in SCHEDULE.md is still empty.

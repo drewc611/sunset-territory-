@@ -50,7 +50,7 @@ export function createSky(scene, renderer, { shadowSize = 2048 } = {}) {
     invTone: { value: 0 }, exposure: { value: 1 },
   };
   const dome = new THREE.Mesh(
-    new THREE.SphereGeometry(900, 32, 16),
+    new THREE.SphereGeometry(3000, 32, 16),
     new THREE.ShaderMaterial({
       uniforms, side: THREE.BackSide, depthWrite: false, fog: false, toneMapped: false,
       vertexShader: /* glsl */`varying vec3 vDir;
@@ -124,8 +124,9 @@ export function createSky(scene, renderer, { shadowSize = 2048 } = {}) {
     const night = Math.max(0, Math.min(1, (-elev + 0.05) / 0.25));
     uniforms.night.value = night;
     scene.fog.color.copy(uniforms.horizon.value).lerp(DUST_FOG, 0.25 * (1 - night));
-    scene.fog.near = (70 - night * 30) * (1 - overcast * 0.5);
-    scene.fog.far = (330 - night * 120) * (1 - overcast * 0.4);
+    // Base fog is the prototype's 70 to 330 m, scaled out by the tier's view distance.
+    scene.fog.near = (70 - night * 30) * (1 - overcast * 0.5) * fogScale;
+    scene.fog.far = (330 - night * 120) * (1 - overcast * 0.4) * fogScale;
 
     // Softer falloff than the prototype's linear curve so golden hour keeps its light.
     sun.intensity = Math.pow(Math.max(0.02, elev), 0.55) * 1.5 * L * (1 - overcast * 0.7);
@@ -152,8 +153,11 @@ export function createSky(scene, renderer, { shadowSize = 2048 } = {}) {
     return state;
   }
 
+  let fogScale = 1;
+  function setFogFar(far) { fogScale = far / 330; }
+
   // Set when post processing (and so the output pass tone mapping) is on.
   function setPostToned(v) { uniforms.invTone.value = v ? 1 : 0; }
 
-  return { update, state, sun, hemi, setPostToned };
+  return { update, state, sun, hemi, setPostToned, setFogFar };
 }

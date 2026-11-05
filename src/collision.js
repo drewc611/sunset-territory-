@@ -1,4 +1,4 @@
-import { LAKE, LAKE_Y, height, WORLD } from './world.js';
+import { LAKE, LAKE_Y, height, BIG } from './world.js';
 
 // Circles (trees, rocks) and oriented boxes (buildings, props) in a uniform grid.
 // resolve() pushes a moving circle out of anything it overlaps and reports whether
@@ -66,7 +66,7 @@ export function createCollision({ trees, rocks, buildings }) {
         }
       }
     }
-    const lim = WORLD / 2 - 10;
+    const lim = BIG / 2 - 10; // the edge of the territory
     x = Math.max(-lim, Math.min(lim, x)); z = Math.max(-lim, Math.min(lim, z));
     out.x = x; out.z = z;
     return out;

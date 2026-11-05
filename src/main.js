@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import './style.css';
-import { WORLD, groundY, height } from './world.js';
+import { groundY, height } from './world.js';
 import { createSky } from './sky.js';
 import { createTerrain } from './terrain.js';
 import { createProps } from './props.js';
@@ -38,11 +38,11 @@ const scene = new THREE.Scene();
 const cam = createCamera();
 const { camera, snap: snapCamera } = cam;
 const sky = createSky(scene, renderer, { shadowSize: 1024 });
-createTerrain(scene, renderer, BASE);
+const terrain = createTerrain(scene, renderer, BASE);
 const props = createProps(scene, BASE);
 const horse = createHorse(scene, BASE);
 const input = createInput(canvas);
-const hud = createHud();
+const hud = createHud(terrain);
 const npcs = createNpcs(scene, props.towns);
 const jobs = createJobs(scene, npcs, props.material);
 const audio = createAudio();
@@ -50,7 +50,7 @@ const ambient = createAmbient(scene, { forcedWeather: params.get('weather') }); 
 const settings = { sound: true, quality: 'auto', invertCam: false, bigControls: false, ...loadSettings() };
 document.body.classList.toggle('big', !!settings.bigControls);
 const post = createPost(renderer, scene, camera, sky);
-const quality = createQuality({ renderer, scene, sun: sky.sun, props, touch, post, onResize: () => resize() });
+const quality = createQuality({ renderer, scene, sun: sky.sun, props, touch, post, terrain, sky, onResize: () => resize() });
 quality.set(params.get('q') || settings.quality); // ?q=low|medium|high overrides, for testing
 audio.setMuted(!settings.sound);
 input.setInvert(settings.invertCam);
@@ -334,6 +334,7 @@ renderer.setAnimationLoop((now) => {
   const s = sky.update(clockH, focusVec.set(focus.x, focus.y, focus.z), camera, ambient.weather.overcast); // shadows follow the player
   s.overcast = ambient.weather.overcast;
   ambient.update(dt, { clockH, dayIndex, night: s.night, camera });
+  terrain.update(focus.x, focus.z);
   props.update(dt, s, focus);
   npcs.update(dt, focus);
   jobs.update(dt, focus, player.mounted, rider.speed, s.night);
@@ -363,7 +364,7 @@ function start() {
 }
 
 const startBtn = document.getElementById('start');
-horse.ready.then(() => {
+Promise.all([horse.ready, terrain.settle(rider.x, rider.z)]).then(() => {
   // Compile shaders before the first frame so riding doesn't hitch on start.
   horse.root.position.set(rider.x, rider.y, rider.z);
   snapCamera(rider);
