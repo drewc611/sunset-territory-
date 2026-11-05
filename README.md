@@ -19,6 +19,7 @@ An original open world western for the browser. Ride a valley at your own pace, 
 | Map of the territory | Tap the minimap | M |
 | Sleep (with a bedroll, at night) | Action button | B |
 | Fish (with a rod, on foot, facing water) | Action button | F |
+| Photo mode: hide the HUD, move the camera, save a picture | Journal, Photo mode | P |
 
 ## How it plays
 

@@ -39,6 +39,8 @@ Andrew asked for no open decisions and a finished game by the end of November, s
 
 - Landmarks out in the territory (Nov 5): 27 generated landmarks, one chance per 2.5 km square, at least 700 m from any settlement, chosen by the land: hoodoo spires in canyon country, cairns and giant pines in the mountains, giant pines and lone graves in wet country, wagon wrecks and fort ruins on the dry flats and the grass. Each has a discovery stamp, a map mark, collision, and a line in the journal, which also counts how many you've found. Meshes stream within 2 km; trees keep clear of them.
 
+- Photo mode (Nov 5): P, or the journal's Photo mode button on touch. The HUD hides and one leather strip runs along the bottom edge (per DESIGN.md: nothing in the center). Drag to orbit, drag up and down to tilt, scroll or + and − to move in. Save picture downloads a PNG of the frame, named by game day and time, taken right after the frame is drawn so the renderer doesn't need preserveDrawingBuffer. The CSS vignette isn't in the saved file. Meant for the soft launch: players can share pictures without a screenshot tool.
+
 ## The territory
 - 20 km x 20 km. Terrain streams in 256 m chunks near the player and 1 km chunks out to the fog, built in a web worker (src/terrain-worker.js). Height and biome rules live in src/world.js and src/surface.js and are shared by the worker, collision and the minimap.
 - No floating origin yet: 32 bit positions at 10 km are good to about 1 mm, which is fine for terrain and riding. Revisit if shadows or the camera shimmer at the edges.
