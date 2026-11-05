@@ -19,6 +19,7 @@ import { createQuality } from './quality.js';
 import { createAmbient } from './ambient.js';
 import { createPost } from './post.js';
 import { createWilds } from './wilds.js';
+import { createWorldMap } from './worldmap.js';
 import { loadGame, saveGame, clearGame, loadSettings, saveSettings } from './save.js';
 import { house, hitchRail } from './models.js';
 import { POIS, HOME } from './world.js';
@@ -210,6 +211,10 @@ const ui = createUi({
   },
   onNewGame() { clearGame(); location.reload(); },
 });
+const worldMap = createWorldMap({ terrain, discovered: hud.discovered, getPlayer: () => focusOf(), getTarget: () => jobs.target() });
+input.onMap(() => worldMap.toggle());
+if (params.has('reveal')) for (let z = -9750; z < 10000; z += 1500) for (let x = -9750; x < 10000; x += 1500) worldMap.reveal(x, z); // ?reveal, for testing
+document.getElementById('map').addEventListener('click', () => worldMap.open());
 function openJournal() { ui.toggleJournal({ jobs, discovered: hud.discovered, settings }); }
 
 // The homestead appears once the deed is bought.
@@ -257,6 +262,7 @@ function persist() {
     foot: { x: foot.x, z: foot.z, heading: foot.heading },
     mounted: player.mounted, clockH, dayIndex,
     discovered: Object.keys(hud.discovered),
+    revealed: worldMap.revealedList(),
     jobs: { money: jobs.state.money, done: jobs.state.done, active: jobs.state.active, deed: jobs.state.deed },
     intro: introSeen,
   });
@@ -271,6 +277,7 @@ if (saved) {
   if (typeof saved.clockH === 'number' && !params.has('t')) clockH = saved.clockH;
   dayIndex = saved.dayIndex | 0;
   (saved.discovered || []).forEach((n) => { hud.discovered[n] = true; });
+  worldMap.loadRevealed(saved.revealed);
   jobs.load(saved.jobs);
   if (jobs.state.deed) buildHomestead();
   introSeen = !!saved.intro;
@@ -321,7 +328,7 @@ renderer.setAnimationLoop((now) => {
   const forced = bench.drive(dt, rider);
   if (forced && !player.mounted) mount();
   let ctl = forced || input.read(dt);
-  if (ui.busy && !forced) ctl = IDLE;
+  if ((ui.busy || worldMap.isOpen) && !forced) ctl = IDLE;
   stepHorse(dt, ctl, player.mounted);
   if (!player.mounted) stepFoot(dt, ctl);
   const focus = player.mounted ? rider : foot;
@@ -338,6 +345,7 @@ renderer.setAnimationLoop((now) => {
   s.overcast = ambient.weather.overcast;
   ambient.update(dt, { clockH, dayIndex, night: s.night, camera });
   terrain.update(focus.x, focus.z);
+  worldMap.reveal(focus.x, focus.z);
   wilds.update(focus.x, focus.z);
   props.update(dt, s, focus);
   npcs.update(dt, focus);
@@ -347,7 +355,7 @@ renderer.setAnimationLoop((now) => {
   audio.update(dt, audioState(focus, s));
   hints(dt);
   renderer.info.reset();
-  post.render();
+  if (!worldMap.isOpen) post.render(); // the map covers the screen: don't draw the world under it
 
   const cpuMs = performance.now() - t0;
   perf.record(frameMs, cpuMs);
