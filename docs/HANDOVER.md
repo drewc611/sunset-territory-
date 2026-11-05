@@ -30,6 +30,9 @@ Andrew asked for no open decisions and a finished game by the end of November, s
 
 - Dependencies (Nov 5): three 0.160.1 to 0.187.0 and Vite 6.4.5 to 8.3.5, done by hand on claude/three-upgrade instead of merging Dependabot #15, which was cut from an older main. The patched shaders compiled unchanged; screenshots at four views matched the old build to a mean of under 2/255 per pixel. The only change needed: three dropped PCFSoftShadowMap, so the renderer uses PCFShadowMap. Close #15 once this merges.
 
+- Draw calls (Nov 5): the jointed horse and the player were 12 and 10 meshes, each drawn again for shadows. They're now one skinned mesh each (skinRig in models.js; joints are bones, so the gait code is unchanged). High went from 168 to 124 calls, Low from 81 to 59, at the start of the valley.
+- KTX2 dropped (Nov 5): there are three 512 px textures, about 4 MB of GPU memory with mips. KTX2 would add a transcoder of roughly 500 KB and need 'wasm-unsafe-eval' in the CSP to save a few MB. Not worth it unless the phone runs short of memory.
+
 ## The territory
 - 20 km x 20 km. Terrain streams in 256 m chunks near the player and 1 km chunks out to the fog, built in a web worker (src/terrain-worker.js). Height and biome rules live in src/world.js and src/surface.js and are shared by the worker, collision and the minimap.
 - No floating origin yet: 32 bit positions at 10 km are good to about 1 mm, which is fine for terrain and riding. Revisit if shadows or the camera shimmer at the edges.
@@ -52,4 +55,3 @@ Andrew asked for no open decisions and a finished game by the end of November, s
 ## Known gaps
 - Headless tests: since the Nov 4 evening machine restart, Chromium's ANGLE SwiftShader flags stall WebGL after about 20 frames. The test scripts use chromium.launch() with default settings instead, which renders at about 1.6 fps here; that's a test machine limit, not a game measurement.
 - No iPhone measurements yet. The graphics budget in SCHEDULE.md is still empty.
-- Textures are JPEG, not KTX2.

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Builder } from './models.js';
+import { Builder, skinRig } from './models.js';
 
 // Jointed low poly person, built in code. The same body plan is used for the
 // player (riding, walking, running, idle) and, merged into a static mesh with a
@@ -61,8 +61,8 @@ const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95
 // Animated rig for the player.
 export function createRig(palette = PALETTES.rider) {
   const g = partGeos(palette);
-  const mesh = (geo) => { const m = new THREE.Mesh(geo, mat); m.castShadow = true; return m; };
-  const joint = (parent, x, y, z, geo) => { const j = new THREE.Group(); j.position.set(x, y, z); parent.add(j); if (geo) j.add(mesh(geo)); return j; };
+  const parts = [];
+  const joint = (parent, x, y, z, geo) => { const j = new THREE.Bone(); j.position.set(x, y, z); parent.add(j); if (geo) parts.push([j, geo]); return j; };
 
   const root = new THREE.Group();
   const hips = joint(root, 0, 0.95, 0, g.pelvis);
@@ -72,6 +72,7 @@ export function createRig(palette = PALETTES.rider) {
   const arm = (sx) => { const sh = joint(torso, sx * 0.24, 0.5, 0, g.upperArm); const el = joint(sh, 0, -0.3, 0, g.foreArm); return { sh, el }; };
   const leg = (sx) => { const hp = joint(hips, sx * 0.1, -0.06, 0, g.thigh); const kn = joint(hp, 0, -0.44, 0, g.shin); return { hp, kn }; };
   const L = { arm: arm(1), leg: leg(1) }, R = { arm: arm(-1), leg: leg(-1) };
+  skinRig(root, parts, mat); // one draw call for the whole figure
 
   let phase = 0, breath = 0;
   const lerpTo = (obj, axis, v, k) => { obj.rotation[axis] += (v - obj.rotation[axis]) * k; };
