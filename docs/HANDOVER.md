@@ -51,6 +51,8 @@ Andrew asked for no open decisions and a finished game by the end of November, s
 
 - Graphics pass 2, Ultra tier (Nov 5): a fourth tier above High, and what auto starts at on desktops (phones still start at Medium). It adds GTAO contact shading, a 4096 shadow map over ±90 m (High: 2048 over ±60 m), finer terrain to about 900 m, one more ring of trees and far trees, and a 2.2 km view. AO re-renders the scene for normals, so it doubles draw calls (171 to 327 in Brass Hollow) and triangles (1.5M to 3.1M), and the shadow map alone is 64 MB of GPU memory; auto drops to High within a few seconds on a machine that can't hold it. ?ao=0 turns AO off for comparisons. Also fixed: once post processing was on (High), rendering went through an offscreen target with no antialiasing, so High had jaggier edges than Medium. That target is now 4x multisampled. The earlier decision "no SSAO" still holds for phones and for High.
 
+- Graphics pass 3, light through foliage (Nov 5): every tier. Leaves, brush and grass glow when the sun is behind them, and get a little wrap light on the shaded side. It's in the shared prop material (foliage is whatever has a sway weight) and the grass material, fed the sun's direction and color each frame, faded out below the horizon and under overcast. No new meshes or passes.
+
 ## The territory
 - 20 km x 20 km. Terrain streams in 256 m chunks near the player and 1 km chunks out to the fog, built in a web worker (src/terrain-worker.js). Height and biome rules live in src/world.js and src/surface.js and are shared by the worker, collision and the minimap.
 - No floating origin yet: 32 bit positions at 10 km are good to about 1 mm, which is fine for terrain and riding. Revisit if shadows or the camera shimmer at the edges.

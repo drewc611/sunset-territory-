@@ -26,6 +26,20 @@ export function createProps(scene, base, sampleHeight = null) {
     };
   }
 
+  // Light through leaves and grass. Thin things glow when the sun is behind them:
+  // looking toward a low sun, foliage lights up gold at the edges instead of going
+  // dark. A little wrap light keeps the shaded side from going flat. 'leaf' is how
+  // much of a surface counts as foliage (the sway weight for models, 1 for grass).
+  const uSunDir = { value: new THREE.Vector3(0, 1, 0) }, uSunCol = { value: new THREE.Color(0, 0, 0) };
+  const TRANSLUCENT = /* glsl */`
+    {
+      vec3 sunV = normalize((viewMatrix * vec4(uSunDir, 0.0)).xyz);
+      vec3 toSurf = -normalize(vViewPosition);
+      float back = pow(clamp(dot(toSurf, sunV), 0.0, 1.0), 5.0);
+      outgoingLight += diffuseColor.rgb * uSunCol * leafAmt * (0.12 + 1.1 * back);
+    }`;
+  const leafUniforms = (sh) => { sh.uniforms.uSunDir = uSunDir; sh.uniforms.uSunCol = uSunCol; };
+
   // Water: animated normal map from water.jpg.
   const waterNormal = new THREE.TextureLoader().load(`${base}assets/water.jpg`);
   waterNormal.wrapS = waterNormal.wrapT = THREE.RepeatWrapping;
@@ -79,6 +93,16 @@ export function createProps(scene, base, sampleHeight = null) {
   }
   const grassMat = new THREE.MeshLambertMaterial({ color: 0x9a9550, vertexColors: true });
   sway(grassMat, 0.25);
+  {
+    const vertexPatch = grassMat.onBeforeCompile;
+    grassMat.onBeforeCompile = (sh) => {
+      vertexPatch(sh);
+      leafUniforms(sh);
+      sh.fragmentShader = sh.fragmentShader
+        .replace('#include <common>', '#include <common>\nuniform vec3 uSunDir; uniform vec3 uSunCol;')
+        .replace('#include <opaque_fragment>', `float leafAmt = 0.8;${TRANSLUCENT}\n#include <opaque_fragment>`);
+    };
+  }
   const grass = new THREE.InstancedMesh(bladeGeo, grassMat, GN);
   grass.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   grass.frustumCulled = false;
@@ -151,9 +175,10 @@ export function createProps(scene, base, sampleHeight = null) {
     sh.uniforms.uNight = uNight;
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', `#include <common>
-        attribute float glow; attribute float sway; varying float vGlow; uniform float uTime;`)
+        attribute float glow; attribute float sway; varying float vGlow; varying float vLeaf; uniform float uTime;`)
       .replace('#include <begin_vertex>', `#include <begin_vertex>
         vGlow = glow;
+        vLeaf = clamp(sway * 1.6, 0.0, 1.0);
         #ifdef USE_INSTANCING
           vec3 ip = vec3(instanceMatrix[3][0], instanceMatrix[3][1], instanceMatrix[3][2]);
         #else
@@ -162,11 +187,14 @@ export function createProps(scene, base, sampleHeight = null) {
         float ph = uTime * 1.3 + ip.x * 0.21 + ip.z * 0.17;
         transformed.x += sin(ph) * sway * 0.22;
         transformed.z += cos(ph * 0.8) * sway * 0.14;`);
+    leafUniforms(sh);
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', `#include <common>
-        varying float vGlow; uniform float uNight;`)
+        varying float vGlow; varying float vLeaf; uniform float uNight; uniform vec3 uSunDir; uniform vec3 uSunCol;`)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
-        totalEmissiveRadiance += vec3(1.0, 0.6, 0.28) * vGlow * (0.05 + uNight * 4.0);`);
+        totalEmissiveRadiance += vec3(1.0, 0.6, 0.28) * vGlow * (0.05 + uNight * 4.0);`)
+      .replace('#include <opaque_fragment>', `float leafAmt = vLeaf;${TRANSLUCENT}
+        #include <opaque_fragment>`);
   };
 
   const trees = [];     // {x, z, r} trunk circles for collision
@@ -393,6 +421,8 @@ export function createProps(scene, base, sampleHeight = null) {
     uTime.value += dt;
     waterNormal.offset.set(uTime.value * 0.012, uTime.value * 0.007);
     uSky.value.copy(sky.horizonTint);
+    uSunDir.value.copy(sky.sunDir);
+    uSunCol.value.copy(sky.sunColor).multiplyScalar(Math.max(0, Math.min(1, sky.elev * 5)) * (1 - (sky.overcast || 0) * 0.7));
 
     const elev = sky.elev, night = sky.night;
     cloudMat.color.copy(sky.sunColor).lerp(tmp.copy(white), 0.5).multiplyScalar((0.35 + Math.max(0, elev) * 0.65) * (1 - (sky.overcast || 0) * 0.4));
