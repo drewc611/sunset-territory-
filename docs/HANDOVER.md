@@ -38,6 +38,11 @@ Andrew asked for no open decisions and a finished game by the end of November, s
 
 - Rivers: about 140 km of channel, 20 to 30 m of water across and 1.6 m deep at most, so every river is a ford; the horse wades and nothing swims. They fade out in high mountains and stop short of the valley. Settlement sites avoid river banks, which cut the count from 54 to 43.
 
+## Launch checklist (Nov 4)
+- Name: a web search for "Sunset Territory" found no game with that title. The closest are Sunset Land (a frontier survival RPG on Steam, planned for Sep 2026) and Sunset Rangers (a western sandbox). This is not a legal trademark search; do one (USPTO and EUIPO) before anything commercial.
+- Licenses: every file in public/ and every font is logged in public/assets/LICENSES.md: MIT (three.js horse and textures), SIL OFL 1.1 (Rye, Vollkorn), or made for this project (everything else, including all sound).
+- Download: about 480 KB before the first frame (204 KB gzipped script, 5 KB worker, 4 KB HTML and CSS, 131 KB grass, 49 KB water, 10 KB rock, plus the Google Fonts files). On a 5 Mbit/s cellular link that's about 1 second, inside the 8 second target; generating the first terrain ring is the rest of the wait and needs measuring on the phone.
+
 ## Known gaps
 - Headless tests: since the Nov 4 evening machine restart, Chromium's ANGLE SwiftShader flags stall WebGL after about 20 frames. The test scripts use chromium.launch() with default settings instead, which renders at about 1.6 fps here; that's a test machine limit, not a game measurement.
 - No iPhone measurements yet. The graphics budget in SCHEDULE.md is still empty.
