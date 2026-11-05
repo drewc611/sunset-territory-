@@ -77,7 +77,7 @@ export function createRig(palette = PALETTES.rider) {
   let phase = 0, breath = 0;
   const lerpTo = (obj, axis, v, k) => { obj.rotation[axis] += (v - obj.rotation[axis]) * k; };
 
-  // mode: 'ride' | 'walk' | 'idle'. speed in m/s for walking. gait 0..1 for riding bounce.
+  // mode: 'ride' | 'walk' | 'idle' | 'fish'. speed in m/s for walking. gait 0..1 for riding bounce.
   function update(dt, mode, speed = 0) {
     breath += dt;
     const k = Math.min(1, dt * 12);
@@ -92,6 +92,17 @@ export function createRig(palette = PALETTES.rider) {
       lerpTo(torso, 'x', 0.08 + Math.min(0.25, speed * 0.01), k);
       lerpTo(tail, 'x', 1.1, k);
       head.rotation.y *= 1 - k;
+      return;
+    }
+    if (mode === 'fish') {
+      // Standing square to the water, rod hand out in front, the other hand at the reel.
+      hips.position.y = 0.95 + Math.sin(breath * 1.6) * 0.004;
+      for (const [side, sx] of [[L, 1], [R, -1]]) {
+        lerpTo(side.leg.hp, 'x', 0, k); lerpTo(side.leg.hp, 'z', sx * 0.05, k); lerpTo(side.leg.kn, 'x', 0.05, k);
+      }
+      lerpTo(R.arm.sh, 'x', -0.95, k); lerpTo(R.arm.sh, 'z', -0.08, k); lerpTo(R.arm.el, 'x', -0.45, k);
+      lerpTo(L.arm.sh, 'x', -0.55, k); lerpTo(L.arm.sh, 'z', -0.25, k); lerpTo(L.arm.el, 'x', -0.9, k);
+      lerpTo(torso, 'x', 0.04, k); torso.rotation.y = 0; lerpTo(tail, 'x', 0.02, k);
       return;
     }
     hips.position.y = 0.95;
@@ -113,7 +124,7 @@ export function createRig(palette = PALETTES.rider) {
     lerpTo(tail, 'x', moving ? 0.15 + run * 0.4 : 0.02, k);
   }
 
-  return { root, update, head };
+  return { root, update, head, hand: R.arm.el }; // hand: the right forearm's joint; the grip is 0.28 m down it
 }
 
 // Static NPC body (merged, standing) plus a separate head so it can turn.
