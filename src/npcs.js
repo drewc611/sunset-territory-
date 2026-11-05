@@ -46,7 +46,7 @@ export function createNpcs(scene, towns) {
     root.position.set(x, height(x, z), z);
     root.rotation.y = face;
     scene.add(root);
-    people.push({ ...def, x, z, face, root, head, body, phase: Math.random() * 6 });
+    people.push({ ...def, site: def.at.town || def.at.camp, x, z, face, root, head, body, phase: Math.random() * 6 });
     circles.push({ x, z, r: 0.35 });
   }
 

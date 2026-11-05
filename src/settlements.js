@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { height, hash } from './world.js';
-import { sites } from './sites.js';
+import { sites, residentsOf } from './sites.js';
+import { npcGeometry, personMaterial, PALETTES } from './character.js';
 import { shop, house, church, waterTower, streetBits, hitchRail, well, tent, campfire, wagon, barn, corral, windmill } from './models.js';
 
 // Builds the territory's generated settlements as you come within range, and
@@ -11,7 +12,8 @@ import { shop, house, church, waterTower, streetBits, hitchRail, well, tent, cam
 const LOAD = 1500, UNLOAD = 1900;
 
 export function createSettlements(scene, material, { collision }) {
-  const loaded = new Map(); // name -> { mesh, flame }
+  const loaded = new Map(); // name -> { mesh, flame, people }
+  const npcCache = {};
   const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _up = new THREE.Vector3(0, 1, 0), _s = new THREE.Vector3(1, 1, 1), _p = new THREE.Vector3();
   let next = 0;
 
@@ -90,15 +92,35 @@ export function createSettlements(scene, material, { collision }) {
       flame.position.set(site.x, site.base + 0.75, site.z);
       scene.add(flame);
     }
+    // The people who live here: one merged mesh, standing where sites.js put them.
+    const folk = [];
+    for (const r of residentsOf(site.name)) {
+      const g = npcCache[r.role] || (npcCache[r.role] = npcGeometry(PALETTES[r.role]));
+      for (const part of [g.body, g.head]) {
+        const c = part.clone();
+        _q.setFromAxisAngle(_up, r.face);
+        _p.set(r.x, height(r.x, r.z) + (part === g.head ? g.headY : 0), r.z);
+        _m.compose(_p, _q, _s);
+        c.applyMatrix4(_m); folk.push(c);
+      }
+      boxes.push({ x: r.x, z: r.z, w: 0.7, d: 0.7, rot: 0 });
+    }
+    let people = null;
+    if (folk.length) {
+      people = new THREE.Mesh(mergeGeometries(folk, false), personMaterial);
+      people.castShadow = true;
+      scene.add(people);
+    }
     const tag = `s:${site.name}`;
     if (collision) collision.addBoxes(tag, boxes);
-    return { mesh, flame, tag };
+    return { mesh, flame, people, tag };
   }
 
   function drop(name) {
     const e = loaded.get(name);
     scene.remove(e.mesh); e.mesh.geometry.dispose();
     if (e.flame) { scene.remove(e.flame); e.flame.geometry.dispose(); }
+    if (e.people) { scene.remove(e.people); e.people.geometry.dispose(); }
     if (collision) collision.removeTag(e.tag);
     loaded.delete(name);
   }

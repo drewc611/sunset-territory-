@@ -20,7 +20,7 @@ An original open world western for the browser. Ride a valley at your own pace, 
 
 ## How it plays
 
-Eight people across Brass Hollow, Caldwell Crossing, Drover's Camp and Widow's Rest have work: deliveries, a powder run you can't gallop, scouting Kettle Ridge, lake water for the doctor, and three stray steers to drive home. Four landmarks (a sandstone arch, a mine, a fire lookout and an old mission) have jobs of their own once you've worked a while. Jobs show on the minimap as a brass ring. Ida Pell in Brass Hollow sells the homestead deed for $60. Progress saves to your browser on its own.
+Eight people across Brass Hollow, Caldwell Crossing, Drover's Camp and Widow's Rest have work: deliveries, a powder run you can't gallop, scouting Kettle Ridge, lake water for the doctor, and three stray steers to drive home. Four landmarks (a sandstone arch, a mine, a fire lookout and an old mission) have jobs of their own once you've worked a while. Out past the valley are 54 more towns, ranches and camps, joined by dirt roads, with 90 settlers who always have something that needs carrying. Jobs show on the minimap as a brass ring. Ida Pell in Brass Hollow sells the homestead deed for $60. Progress saves to your browser on its own.
 
 ## Run it locally
 
