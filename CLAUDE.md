@@ -13,7 +13,7 @@ prototype/index.html is a working single file beta (beta 0.2): procedural terrai
 ## Current state of src/ (Nov 4 2026)
 A playable game: riding and walking, eight townsfolk with an eight job chain ending in a homestead deed, synthesized sound, saves, journal, quality tiers. See README.md for the file layout and docs/HANDOVER.md for decisions and known gaps. URL params: ?perf, ?bench, ?t=17.5, ?at=x,z,heading, ?debug.
 
-The phased plan with exit gates is docs/SCHEDULE.md, compressed to finish by Nov 30 2026. Jobs 1 to 4 and 6 below are done (props are made in code, not a pack). Job 5, post processing, is still open.
+The phased plan with exit gates is docs/SCHEDULE.md, compressed to finish by Nov 30 2026. Jobs 1 to 6 below are done (props are made in code, not a pack; post processing is bloom plus a color grade on High only, no SSAO).
 
 ## The job
 Port the prototype into src/ as modules and replace the primitive look with real assets and materials, in this order:

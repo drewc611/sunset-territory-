@@ -69,6 +69,7 @@ export function createAmbient(scene, { forcedWeather } = {}) {
   const KINDS = { clear: [0, 0], overcast: [0.75, 0], rain: [1, 1] };
   function pickWeather(day) {
     if (forcedWeather) return forcedWeather;
+    if (day === 0) return 'clear'; // the first day is always clear: first impressions
     const r = hash(day * 7.3, 2.1);
     return r < 0.62 ? 'clear' : r < 0.85 ? 'overcast' : 'rain';
   }

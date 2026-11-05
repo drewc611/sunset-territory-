@@ -24,6 +24,8 @@ Andrew asked for no open decisions and a finished game by the end of November, s
 - Second loop: odd jobs for the townsfolk, ending in a $60 homestead deed. It fits the no-pressure tone and needed no combat systems.
 - Platform: PWA only at launch. An App Store shell can come later.
 - Code license: all rights reserved, public repo.
+- Post processing: bloom and a warm grade on High only; no SSAO, which a phone can't afford. The sky and fog are pre-inverted through the tone curve on that path so High looks like Medium plus glow, not a different grade.
+- The first in-game day is always clear weather.
 
 ## Known gaps
 - Horse.glb has only a gallop clip. Standing holds the best frame (all hooves down); walking plays the gallop slowed. A walk and idle need a new horse model or clips.

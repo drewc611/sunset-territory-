@@ -17,6 +17,7 @@ import { createUi } from './ui.js';
 import { createAudio } from './audio.js';
 import { createQuality } from './quality.js';
 import { createAmbient } from './ambient.js';
+import { createPost } from './post.js';
 import { loadGame, saveGame, clearGame, loadSettings, saveSettings } from './save.js';
 import { house, hitchRail } from './models.js';
 import { POIS, HOME } from './world.js';
@@ -31,6 +32,7 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPrefere
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.info.autoReset = false; // reset once per frame so the perf HUD counts every pass
 
 const scene = new THREE.Scene();
 const cam = createCamera();
@@ -47,8 +49,9 @@ const audio = createAudio();
 const ambient = createAmbient(scene, { forcedWeather: params.get('weather') }); // ?weather=rain for testing
 const settings = { sound: true, quality: 'auto', invertCam: false, bigControls: false, ...loadSettings() };
 document.body.classList.toggle('big', !!settings.bigControls);
-const quality = createQuality({ renderer, scene, sun: sky.sun, props, touch });
-quality.set(settings.quality);
+const post = createPost(renderer, scene, camera, sky);
+const quality = createQuality({ renderer, scene, sun: sky.sun, props, touch, post, onResize: () => resize() });
+quality.set(params.get('q') || settings.quality); // ?q=low|medium|high overrides, for testing
 audio.setMuted(!settings.sound);
 input.setInvert(settings.invertCam);
 const perf = createPerfHud(renderer, scene);
@@ -74,6 +77,7 @@ const HORSE_R = 0.85, FOOT_R = 0.32;
 
 function resize() {
   renderer.setSize(innerWidth, innerHeight, false);
+  post.setSize(innerWidth, innerHeight);
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
 }
@@ -330,7 +334,8 @@ renderer.setAnimationLoop((now) => {
   ui.update(dt, jobs);
   audio.update(dt, audioState(focus, s));
   hints(dt);
-  renderer.render(scene, camera);
+  renderer.info.reset();
+  post.render();
 
   const cpuMs = performance.now() - t0;
   perf.record(frameMs, cpuMs);
