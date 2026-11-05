@@ -236,7 +236,7 @@ function buildHomestead() {
 jobs.on((ev) => {
   if (ev.type === 'accepted') ui.toast('Job taken. It\'s marked on your map.');
   if (ev.type === 'paid') { audio.chime(); ui.toast(`Paid $${ev.job.pay}. You have $${jobs.state.money}.`); persist(); }
-  if (ev.type === 'stage') ui.toast(ev.text);
+  if (ev.type === 'stage') { ui.toast(ev.text, 5); if (ev.bell) audio.bell(); }
   if (ev.type === 'failed') ui.toast(ev.text, 7);
   if (ev.type === 'deed') {
     buildHomestead();
@@ -304,6 +304,7 @@ function audioState(focus, sk) {
     inTown, nearFire: Math.max(0, 1 - fd / 22), night: sk.night, dusk: Math.min(1, dusk), wet: ambient.weather.wet };
 }
 
+const debugView = params.has('view') ? params.get('view').split(',').map(Number) : null;
 const IDLE = { fwd: 0, turn: 0, gallop: false, camYawDelta: 0, dragging: false };
 const focusVec = new THREE.Vector3();
 let last = performance.now();
@@ -322,6 +323,12 @@ renderer.setAnimationLoop((now) => {
   if (!player.mounted) stepFoot(dt, ctl);
   const focus = player.mounted ? rider : foot;
   updateCamera(dt, focus, ctl, !player.mounted);
+  if (debugView) { // ?view=x,z,dist: slow orbit around a point, for checking models
+    const [vx, vz, vd] = debugView, a = now * 0.0001, vy = height(vx, vz);
+    const cxv = vx + Math.cos(a) * vd, czv = vz + Math.sin(a) * vd;
+    camera.position.set(cxv, Math.max(vy + vd * 0.55, height(cxv, czv) + 6), czv);
+    camera.lookAt(vx, vy + 3, vz);
+  }
   clockH += dt * (24 / DAY_SECONDS);
   if (clockH >= 24) { clockH -= 24; dayIndex++; }
   const s = sky.update(clockH, focusVec.set(focus.x, focus.y, focus.z), camera, ambient.weather.overcast); // shadows follow the player
@@ -329,7 +336,7 @@ renderer.setAnimationLoop((now) => {
   ambient.update(dt, { clockH, dayIndex, night: s.night, camera });
   props.update(dt, s, focus);
   npcs.update(dt, focus);
-  jobs.update(dt, focus, player.mounted, rider.speed);
+  jobs.update(dt, focus, player.mounted, rider.speed, s.night);
   hud.update(focus, clockH, { onFoot: !player.mounted, action: ui.busy ? null : actionLabel(), target: jobs.target() });
   ui.update(dt, jobs);
   audio.update(dt, audioState(focus, s));

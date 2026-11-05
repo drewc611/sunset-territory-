@@ -111,6 +111,18 @@ export function createAudio() {
     }
   }
 
+  // A church bell: inharmonic partials with long, uneven decays.
+  function bell() {
+    if (!ctx) return;
+    const t = ctx.currentTime, f = 196;
+    for (const [mult, amp, decay] of [[0.5, 0.25, 5], [1, 0.3, 4], [1.19, 0.14, 3], [1.5, 0.12, 2.5], [2, 0.1, 2], [2.74, 0.06, 1.4], [3.76, 0.04, 1]]) {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.value = f * mult;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(amp * 0.5, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0005, t + decay);
+      o.connect(g).connect(sfx); o.start(t); o.stop(t + decay + 0.1);
+    }
+  }
+
   function chime() {
     if (!ctx) return;
     ['E4', 'A4', 'C5', 'E5'].forEach((n, i) => play(notes[n], 0.35, i * 0.07, 1, sfx));
@@ -172,7 +184,7 @@ export function createAudio() {
     if (document.hidden) ctx.suspend(); else ctx.resume();
   });
 
-  return { start, update, whistle, chime, setMuted, get muted() { return muted; } };
+  return { start, update, whistle, chime, bell, setMuted, get muted() { return muted; } };
 }
 
 const NOTE_HZ = {

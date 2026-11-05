@@ -11,6 +11,10 @@ export const POIS = [
   { name: "Widow's Rest", sub: 'Trapper camp under the cedars', x: 60, z: 130, r: 16, type: 'camp', flat: true },
   { name: 'Kettle Ridge', sub: 'Highest ground in the valley', x: -120, z: -90, r: 40, type: 'ridge', flat: false },
   { name: 'The Flats', sub: 'Dry lake, hard pan, no shade', x: 20, z: 30, r: 48, type: 'flat', flat: true },
+  { name: 'Sandstone Arch', sub: 'Wind did this, given long enough', x: -150, z: 20, r: 14, type: 'landmark', flat: false },
+  { name: 'Danner Mine', sub: 'Cole Danner digs here every morning', x: 140, z: -95, r: 14, type: 'landmark', flat: false },
+  { name: 'Lookout Tower', sub: 'Built for fire watch, left for anyone', x: 150, z: 120, r: 12, type: 'landmark', flat: false },
+  { name: 'Old Mission', sub: 'The bell still hangs', x: -40, z: 160, r: 14, type: 'landmark', flat: false },
 ];
 
 export function hash(x, z) { const n = Math.sin(x * 127.1 + z * 311.7) * 43758.5453; return n - Math.floor(n); }
@@ -56,7 +60,7 @@ export const HOME = { x: 70, z: 114, r: 11 };
 export function nearPOI(x, z, pad) {
   if (Math.hypot(x - HOME.x, z - HOME.z) < HOME.r + pad) return true;
   for (const p of POIS) {
-    if ((p.type === 'town' || p.type === 'camp' || p.type === 'lake') && Math.hypot(x - p.x, z - p.z) < p.r + pad) return true;
+    if ((p.type === 'town' || p.type === 'camp' || p.type === 'lake' || p.type === 'landmark') && Math.hypot(x - p.x, z - p.z) < p.r + pad) return true;
   }
   return false;
 }

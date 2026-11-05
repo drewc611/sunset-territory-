@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { WORLD, POIS, LAKE, LAKE_Y, hash, fbm, height, nearPOI } from './world.js';
-import { Builder, pine, cottonwood, juniper, boulder, slab, shop, house, church, waterTower, streetBits, hitchRail, well, tent, campfire, wagon } from './models.js';
+import { sandArch, mineAdit, lookoutTower, missionRuin, Builder, pine, cottonwood, juniper, boulder, slab, shop, house, church, waterTower, streetBits, hitchRail, well, tent, campfire, wagon } from './models.js';
 
 // Everything placed in the world. Trees, rocks, towns and camps use the low poly
 // models in models.js; placement uses the prototype's seeds so the valley matches.
@@ -325,6 +325,27 @@ export function createProps(scene, base) {
   }
 
   POIS.forEach((p) => { if (p.type === 'town') town(p); if (p.type === 'camp') camp(p); });
+
+  // Landmarks. Each sits on the lowest ground under it (so nothing floats) and the
+  // mine faces downhill, with its mound against the slope.
+  const LANDMARKS = { 'Sandstone Arch': sandArch, 'Danner Mine': mineAdit, 'Lookout Tower': lookoutTower, 'Old Mission': missionRuin };
+  for (const p of POIS.filter((q) => q.type === 'landmark')) {
+    const m = LANDMARKS[p.name]();
+    let rot = hash(p.x, p.z) * 6.28;
+    if (p.name === 'Danner Mine') {
+      const gx = height(p.x + 2, p.z) - height(p.x - 2, p.z), gz = height(p.x, p.z + 2) - height(p.x, p.z - 2);
+      rot = Math.atan2(-gx, -gz); // local +z (the entrance) points downhill
+    }
+    let y = Infinity;
+    for (let a = 0; a < 6.28; a += 0.5) y = Math.min(y, height(p.x + Math.cos(a) * 4, p.z + Math.sin(a) * 4));
+    const mesh = new THREE.Mesh(m.geo, propMat);
+    mesh.position.set(p.x, Math.min(y, height(p.x, p.z)) - 0.3, p.z);
+    mesh.rotation.y = rot;
+    mesh.castShadow = mesh.receiveShadow = true;
+    scene.add(mesh);
+    const c = Math.cos(rot), s = Math.sin(rot);
+    for (const bx of m.boxes) buildings.push({ x: p.x + bx.x * c + bx.z * s, z: p.z - bx.x * s + bx.z * c, w: bx.w, d: bx.d, rot });
+  }
 
   // Dust kicked up at a gallop.
   const DUST = 80;

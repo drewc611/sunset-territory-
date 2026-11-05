@@ -41,6 +41,19 @@ export const JOBS = [
   { id: 'mail', giver: 'mae', kind: 'deliver', to: 'reyes', pay: 7,
     offer: "Mail sack for the Sheriff in Brass Hollow. Wanted notices, mostly. Mind the river crossing.",
     thanks: "Mae's mail. Obliged. Seven, and keep your eyes open out there." },
+  // Second chain: the landmarks.
+  { id: 'lamp', giver: 'cole', kind: 'scout', place: 'Danner Mine', pay: 9, after: ['powder'],
+    offer: "Left my good lamp hanging at the adit, up on the east hill. My knees don't care for that climb. Ride up and fetch it?",
+    report: "That's my lamp. Forty years it's lit my way down. Nine dollars, and my thanks." },
+  { id: 'arch', giver: 'mae', kind: 'scout', place: 'Sandstone Arch', pay: 8, after: ['mail'],
+    offer: "The assay office in the capital wants a sketch of the Sandstone Arch, out past the west hills. Ride out and tell me what it's like.",
+    report: "Taller than a church and thin as a wish? I'll write that down just so. Eight dollars." },
+  { id: 'watch', giver: 'reyes', kind: 'scout', place: 'Lookout Tower', night: true, pay: 12, after: ['ridge'],
+    offer: "Those ridge fires bother me. Climb the Lookout Tower, northeast, and keep watch after dark. Come tell me if you see a light.",
+    report: "One fire, out past the ridge, and it went dark at midnight? Then they've moved on. Twelve, and get some sleep." },
+  { id: 'bell', giver: 'sarrow', kind: 'scout', place: 'Old Mission', bell: true, pay: 10, after: ['pelts'],
+    offer: "My Henry was married under the old mission bell, up north. Ring it once for him, would you? Then come tell me.",
+    report: "I heard it. Clear across the valley, I heard it. Bless you. Ten dollars, and don't argue." },
 ];
 
 const LINES = {
@@ -103,7 +116,11 @@ export function createJobs(scene, npcs, propMat) {
     const back = npcs.byId[j.giver];
     if (j.kind === 'deliver' || j.kind === 'careful') { const p = npcs.byId[j.to]; return { x: p.x, z: p.z, label: `${cargo(j)} for ${p.name}` }; }
     if (a.stage === 'report') return { x: back.x, z: back.z, label: `Report to ${back.name}` };
-    if (j.kind === 'scout') { const p = place(j.place); return { x: p.x, z: p.z, label: `Scout ${j.place}` }; }
+    if (j.kind === 'scout') {
+      const p = place(j.place);
+      const label = j.night ? `Keep watch at ${j.place} after dark` : j.bell ? `Ring the bell at the ${j.place}` : j.id === 'lamp' ? `Fetch Cole's lamp from ${j.place}` : `Scout ${j.place}`;
+      return { x: p.x, z: p.z, label };
+    }
     if (j.kind === 'water') return { x: LAKE.x, z: LAKE.z, label: 'Fill the canteen in Caldwell Lake' };
     if (j.kind === 'strays') {
       const left = cows.filter((c) => !c.herded);
@@ -167,7 +184,7 @@ export function createJobs(scene, npcs, propMat) {
     return { name: p.name, text: line, choices: [{ label: 'Ride on', run: () => {} }] };
   }
 
-  function update(dt, player, mounted, horseSpeed) {
+  function update(dt, player, mounted, horseSpeed, night = 0) {
     const a = state.active;
     if (!a) return;
     const j = job(a.id);
@@ -178,7 +195,18 @@ export function createJobs(scene, npcs, propMat) {
     }
     if (a.stage === 'go' && j.kind === 'scout') {
       const p = place(j.place);
-      if (Math.hypot(player.x - p.x, player.z - p.z) < p.r * 0.5) { a.stage = 'report'; emit({ type: 'stage', text: 'You can see the whole valley from here. Time to report back.' }); }
+      const there = Math.hypot(player.x - p.x, player.z - p.z) < Math.max(6, p.r * 0.5);
+      if (there && j.night && night < 0.6) {
+        if (!a.waitNoted) { a.waitNoted = true; emit({ type: 'stage', text: 'Nothing to see in daylight. Wait here for dark.' }); }
+      } else if (there) {
+        a.stage = 'report';
+        const text = j.bell ? 'You pull the rope. The bell rings out over the valley.'
+          : j.night ? 'A single campfire, far out past the ridge. Then it goes dark.'
+          : j.id === 'lamp' ? 'The lamp hangs on a nail inside the adit. You take it down.'
+          : j.id === 'arch' ? "You sit a while and take in the arch. It's bigger than it looked from the trail."
+          : 'You can see the whole valley from here. Time to report back.';
+        emit({ type: 'stage', text, bell: !!j.bell });
+      }
     }
     if (a.stage === 'go' && j.kind === 'water') {
       if (Math.hypot(player.x - LAKE.x, player.z - LAKE.z) < LAKE.r * 0.45) { a.stage = 'report'; emit({ type: 'stage', text: 'Canteen filled. Back to Doc Wilder.' }); }
