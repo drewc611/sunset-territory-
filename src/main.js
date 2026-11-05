@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import './atmosphere.js'; // replaces three's fog chunks before any material compiles
 import './style.css';
 import { groundY, height } from './world.js';
 import { createSky } from './sky.js';

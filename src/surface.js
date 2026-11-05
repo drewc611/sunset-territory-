@@ -43,7 +43,7 @@ function bigSurface(x, z, h) {
   let c = mix(GRASS, GRASS2, v);
   c = mix(c, FOREST, forest);
   c = mix(c, DESERT, desert);
-  c = mix(c, CANYON, canyon * 0.7);
+  c = mix(c, CANYON, canyon * 0.55);
   const k = 1 + (fbm(x * 0.02 + 50, z * 0.02) - 0.97) * 0.3;
   c = [c[0] * k, c[1] * k, c[2] * k];
   let dirt = Math.max(desert * 0.85, canyon * 0.9, (vnoise(x * 0.03 + 11, z * 0.03) - 0.66) * 2.4);
@@ -56,7 +56,7 @@ function bigSurface(x, z, h) {
   const site = nearSite(x, z, 4);
   if (site) dirt = Math.max(dirt, 0.85 * cl(1.2 - Math.hypot(x - site.x, z - site.z) / (site.r + 4)));
   const snow = cl((h - 210) / 40) * (0.5 + vnoise(x * 0.02, z * 0.02) * 0.5);
-  const tint = mix(mix([1, 1, 1], [1.15, 1.05, 0.88], desert), [1.45, 0.82, 0.62], canyon);
+  const tint = mix(mix([1, 1, 1], [1.15, 1.05, 0.88], desert), [1.32, 0.88, 0.7], canyon); // red rock, short of solid red
   return { c, dirt: cl(dirt), snow, mud, tint };
 }
 
