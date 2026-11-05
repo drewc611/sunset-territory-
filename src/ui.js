@@ -75,6 +75,11 @@ export function createUi({ onSetting, onNewGame, onPhoto }) {
         <label><input type="checkbox" id="setBig" ${settings.bigControls ? 'checked' : ''}> Larger touch controls</label>
         <button type="button" id="photoMode">Photo mode (P)</button>
         <button type="button" id="newGame">Start over</button>
+      </section>
+      <section><h2>About</h2>
+        <p>Sunset Territory, made by Andrew Clark, 2026. All rights reserved.</p>
+        <p>Every model, texture and sound was made for this game, or comes from the MIT licensed three.js examples. Built with three.js (MIT License). Type set in Rye and Vollkorn (SIL Open Font License 1.1).</p>
+        <p><a href="THIRD-PARTY-NOTICES.txt" target="_blank" rel="noopener">Third-party notices</a> &middot; <a href="assets/LICENSES.md" target="_blank" rel="noopener">Asset licenses</a></p>
       </section>`;
     $('setSound').onchange = (e) => onSetting('sound', e.target.checked);
     $('setQuality').onchange = (e) => onSetting('quality', e.target.value);

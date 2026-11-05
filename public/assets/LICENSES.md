@@ -10,3 +10,5 @@ Rule for every future asset: CC0, MIT, or made for this project. Record source a
 - The jointed horse (src/horse-rig.js): built in code for this project, no license restriction. Horse.glb is kept for ?horse=glb.
 - Fonts, loaded from Google Fonts: Rye by Nicole Fally and Vollkorn by Friedrich Althausen, both under the SIL Open Font License 1.1 (google/fonts repository, ofl/rye and ofl/vollkorn METADATA.pb).
 - Deer, pronghorn and cattle (src/wildlife.js): built in code for this project, no license restriction.
+- three.js library (bundled into the game): MIT License, Copyright 2010-2026 three.js authors. Vite's module preload helper (in the built page): MIT License, Copyright 2019-present VoidZero Inc. and Vite contributors. Full texts ship as THIRD-PARTY-NOTICES.txt next to the game, written at build time from the installed packages.
+- Fishing rod, float and line (src/fishing.js) and the territory's landmarks: hoodoos, wagon wreck, giant pine, cairn, fort ruin, grave (src/landmarks.js): built in code for this project, no license restriction.
