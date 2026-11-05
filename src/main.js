@@ -244,6 +244,7 @@ const shop = createShop({
   onStage(town, km) { stageTo(town, km); },
 });
 const fishing = createFishing({ scene, audio, ui, shop });
+jobs.setCreel(fishing.creel);
 const lantern = new THREE.PointLight(0xffc070, 0, 24, 2);
 scene.add(lantern);
 let s0night = 0; // last frame's night amount, for the lantern and the bedroll
