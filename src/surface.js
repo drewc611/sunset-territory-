@@ -1,4 +1,4 @@
-import { POIS, LAKE, LAKE_Y, fbm, vnoise, masks, valleyBlend } from './world.js';
+import { POIS, LAKE, LAKE_Y, fbm, vnoise, masks, valleyBlend, riverInfo } from './world.js';
 import { roadAt, nearSite } from './sites.js';
 
 // What the ground is made of at a point: a grass tint, a dirt/snow/mud mix, and a
@@ -47,13 +47,17 @@ function bigSurface(x, z, h) {
   const k = 1 + (fbm(x * 0.02 + 50, z * 0.02) - 0.97) * 0.3;
   c = [c[0] * k, c[1] * k, c[2] * k];
   let dirt = Math.max(desert * 0.85, canyon * 0.9, (vnoise(x * 0.03 + 11, z * 0.03) - 0.66) * 2.4);
+  // River banks: wet mud at the water, then greener grass.
+  const rv = riverInfo(x, z);
+  if (rv.bank > 0) { c = mix(c, GRASS, rv.bank * 0.6); dirt *= 1 - rv.bank * 0.7; }
+  const mud = rv.core > 0.2 ? cl((rv.core - 0.2) * 2) : 0;
   // Roads and the trodden ground of settlements.
   dirt = Math.max(dirt, roadAt(x, z));
   const site = nearSite(x, z, 4);
   if (site) dirt = Math.max(dirt, 0.85 * cl(1.2 - Math.hypot(x - site.x, z - site.z) / (site.r + 4)));
   const snow = cl((h - 210) / 40) * (0.5 + vnoise(x * 0.02, z * 0.02) * 0.5);
   const tint = mix(mix([1, 1, 1], [1.15, 1.05, 0.88], desert), [1.45, 0.82, 0.62], canyon);
-  return { c, dirt: cl(dirt), snow, mud: 0, tint };
+  return { c, dirt: cl(dirt), snow, mud, tint };
 }
 
 // Blended between the valley and the territory.
@@ -70,6 +74,7 @@ const toSrgb = (v) => Math.round(255 * Math.min(1, v <= 0.0031308 ? v * 12.92 : 
 const DIRT = hex(0x8a6a44), SNOW = hex(0xd8d2ca), ROCK = hex(0x7a6a5c);
 export function mapColor(x, z, h, slope = 0) {
   if (Math.hypot(x - LAKE.x, z - LAKE.z) < LAKE.r - 1) return [45, 85, 105];
+  if (riverInfo(x, z).depth > 0.3) return [52, 92, 112];
   const s = surface(x, z, h);
   let c = mix(s.c, [DIRT[0] * s.tint[0], DIRT[1] * s.tint[1], DIRT[2] * s.tint[2]], s.dirt * 0.85);
   c = mix(c, [ROCK[0] * s.tint[0], ROCK[1] * s.tint[1], ROCK[2] * s.tint[2]], cl((slope - 0.35) * 3));

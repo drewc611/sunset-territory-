@@ -11,7 +11,7 @@ Andrew moved the finish to the end of November. The phases below still define th
 
 The territory (Andrew, Nov 4): 20 km x 20 km, 400 km², with the hand built valley at the center.
   a. Streamed terrain, biomes in the ground shader, player-centered minimap. Done Nov 4.
-  b. Per chunk trees, rocks and grass by biome. Done Nov 4. Rivers still to come.
+  b. Per chunk trees, rocks and grass by biome, and rivers. Done Nov 4.
   c. Zoomable full map with discovered regions. Done Nov 4.
   d. Procedural towns, ranches and camps on dirt roads, with townsfolk and generated jobs. Done Nov 4.
   e. Draw distance and chunk counts per quality tier (started in a), checked with ?bench.
