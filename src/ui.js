@@ -1,6 +1,7 @@
 import { POIS } from './world.js';
 import { JOBS, DEED_PRICE } from './jobs.js';
 import { FISH } from './fishing.js';
+import { landmarks } from './landmarks.js';
 
 // Dialogue strip, money and job lines, notices, and the journal. Per docs/DESIGN.md:
 // serif on dark leather at the screen edges; the journal is a full page, not a card.
@@ -64,7 +65,7 @@ export function createUi({ onSetting, onNewGame }) {
         <p>${active ? `Current job: <b>${t ? t.label : labelFor(active)}</b>` : 'No job right now.'}</p>
         <ul>${doneRows}</ul></section>
       ${fishRows(fishing)}
-      <section><h2>Places</h2><ul>${placeRows}</ul></section>
+      <section><h2>Places</h2><ul>${placeRows}</ul>${farRows(discovered)}</section>
       <section><h2>Settings</h2>
         <label><input type="checkbox" id="setSound" ${settings.sound !== false ? 'checked' : ''}> Sound</label>
         <label>Quality <select id="setQuality">
@@ -79,6 +80,12 @@ export function createUi({ onSetting, onNewGame }) {
     $('setInvert').onchange = (e) => onSetting('invertCam', e.target.checked);
     $('setBig').onchange = (e) => onSetting('bigControls', e.target.checked);
     $('newGame').onclick = () => { if (confirm('Start over? Your money, jobs and map will be cleared.')) onNewGame(); };
+  }
+  // Landmarks found out in the territory.
+  function farRows(discovered) {
+    const all = landmarks(), found = all.filter((l) => discovered[l.name]);
+    const rows = found.map((l) => `<li><b>${l.name}</b> <i>${l.sub}</i></li>`).join('');
+    return `<p>Out in the territory: ${found.length} of ${all.length} landmarks found.</p>${rows ? `<ul>${rows}</ul>` : ''}`;
   }
   function fishRows(fishing) {
     if (!fishing || !Object.keys(fishing.best).length) return '';

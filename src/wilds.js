@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { hash, fbm, height, masks, nearPOI, riverInfo } from './world.js';
 import { nearSite, roadAt } from './sites.js';
+import { nearLandmark } from './landmarks.js';
 import { Builder, pine, cottonwood, juniper, boulder, slab, cactus, sage, snag } from './models.js';
 
 // Trees, brush and rocks for the territory beyond the valley, streamed in 128 m
@@ -84,7 +85,7 @@ export function createWilds(scene, material, { sampleHeight, collision }) {
       const r1 = hash(id * 0.013, 1.7), r2 = hash(id * 0.017, 2.3), r3 = hash(id * 0.019, 3.1);
       const x = x0 + (i + r1) * STEP, z = z0 + (j + r2) * STEP;
       if (Math.abs(x) < VALLEY && Math.abs(z) < VALLEY) continue;
-      if (nearPOI(x, z, 6) || nearSite(x, z, 10) || roadAt(x, z) > 0.05) continue;
+      if (nearPOI(x, z, 6) || nearSite(x, z, 10) || roadAt(x, z) > 0.05 || nearLandmark(x, z, 6)) continue;
       const ck = (i >> 2) * 8 + (j >> 2);
       const m = coarse[ck] || (coarse[ck] = masks(x, z));
       const h = hAt(x, z);
@@ -167,7 +168,7 @@ export function createWilds(scene, material, { sampleHeight, collision }) {
       const pJun = (1 - forest) * (0.02 + m.canyon * 0.05 + (1 - desert) * 0.02) * (0.5 + grove) * 4;
       const kind = r < pPine ? 'pine' : r < pPine + pCotton ? 'cotton' : r < pPine + pCotton + pJun ? 'juniper' : null;
       if (!kind) continue;
-      if (nearPOI(x, z, 6) || nearSite(x, z, 10) || riverInfo(x, z, m).core > 0.15) continue;
+      if (nearPOI(x, z, 6) || nearSite(x, z, 10) || riverInfo(x, z, m).core > 0.15 || nearLandmark(x, z, 6)) continue;
       const h = height(x, z);
       if (h > 215) continue;
       const s = 0.8 + hash(id * 0.029, 5.9) * 0.5;

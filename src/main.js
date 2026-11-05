@@ -25,6 +25,7 @@ import { createWilds } from './wilds.js';
 import { createWildlife } from './wildlife.js';
 import { createWorldMap } from './worldmap.js';
 import { createSettlements } from './settlements.js';
+import { createLandmarks } from './landmarks.js';
 import { createShop } from './shop.js';
 import { loadGame, saveGame, clearGame, loadSettings, saveSettings } from './save.js';
 import { house, hitchRail } from './models.js';
@@ -84,6 +85,7 @@ const collision = createCollision({ trees: props.trees.concat(npcs.circles), roc
 const updateCamera = (dt, f, c, onFoot) => cam.update(dt, f, c, onFoot, collision);
 const wildlife = createWildlife(scene, props.material, { sampleHeight: terrain.sampleHeight });
 const settlements = createSettlements(scene, props.material, { collision });
+const landmarkMeshes = createLandmarks(scene, props.material, { collision });
 const wilds = createWilds(scene, props.material, { sampleHeight: terrain.sampleHeight, collision });
 quality.onTier((t) => wilds.setTier(t));
 const HORSE_R = 0.85, FOOT_R = 0.32;
@@ -282,7 +284,7 @@ function stageTo(town, km) {
     if (clockH >= 24) { clockH -= 24; dayIndex++; }
     await terrain.settle(x, z);
     wilds.settle(x, z);
-    settlements.settle(x, z);
+    settlements.settle(x, z); landmarkMeshes.settle(x, z);
     horse.root.position.set(rider.x, rider.y, rider.z);
     horse.root.rotation.y = rider.heading;
     snapCamera(rider);
@@ -440,6 +442,7 @@ renderer.setAnimationLoop((now) => {
   lantern.intensity = shop.has('lantern') ? s0night * 3.2 * Math.PI : 0;
   wilds.update(focus.x, focus.z);
   settlements.update(focus.x, focus.z);
+  landmarkMeshes.update(focus.x, focus.z);
   wildlife.update(dt, { x: focus.x, z: focus.z, speed: Math.abs(player.mounted ? rider.speed : foot.speed) });
   props.update(dt, s, focus);
   npcs.update(dt, focus);
@@ -473,7 +476,7 @@ function start() {
 const startBtn = document.getElementById('start');
 Promise.all([horse.ready, terrain.settle(rider.x, rider.z)]).then(() => {
   wilds.settle(rider.x, rider.z);
-  settlements.settle(rider.x, rider.z);
+  settlements.settle(rider.x, rider.z); landmarkMeshes.settle(rider.x, rider.z);
   // Compile shaders before the first frame so riding doesn't hitch on start.
   horse.root.position.set(rider.x, rider.y, rider.z);
   snapCamera(rider);
