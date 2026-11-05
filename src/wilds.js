@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { hash, fbm, height, masks, nearPOI, riverInfo } from './world.js';
 import { nearSite, roadAt } from './sites.js';
-import { pine, cottonwood, juniper, boulder, slab, cactus, sage, snag } from './models.js';
+import { Builder, pine, cottonwood, juniper, boulder, slab, cactus, sage, snag } from './models.js';
 
 // Trees, brush and rocks for the territory beyond the valley, streamed in 128 m
 // cells around the player. Each cell is generated from its coordinates, so the same
@@ -128,7 +128,86 @@ export function createWilds(scene, material, { sampleHeight, collision }) {
     dirty = false;
   }
 
+
+  // --- far trees ---------------------------------------------------------------
+  // Beyond the full detail cells, out to the haze: a ring of very cheap trees
+  // (one cone or one blob, no trunk, no shadow, no collision) on a coarser 16 m
+  // grid with four times the odds, so the forest reads the same from a distance.
+  const FAR_RADIUS = { low: 0, medium: 6, high: 8 };
+  let farRadius = FAR_RADIUS.high, farCenter = '';
+  const farCells = new Map();
+  const farTodo = [];
+  const lowGeo = (geo, color) => { const b = new Builder(); b.add(geo, color, {}, { shade: 0.35, sway: 0.3 }); return b.build(); };
+  const FAR_KINDS = {
+    pine: lowGeo(new THREE.ConeGeometry(2.3, 10, 6).translate(0, 7, 0), 0x3f5c2c),
+    cotton: lowGeo(new THREE.IcosahedronGeometry(3.2, 0).scale(1, 0.8, 1).translate(0, 7, 0), 0x5e7a34),
+    juniper: lowGeo(new THREE.IcosahedronGeometry(1.4, 0).translate(0, 1.6, 0), 0x3f5230),
+  };
+  const farMesh = {};
+  for (const [k, geo] of Object.entries(FAR_KINDS)) {
+    const im = new THREE.InstancedMesh(geo, material, 20000);
+    im.count = 0; im.castShadow = false; im.receiveShadow = true; im.frustumCulled = false;
+    scene.add(im); farMesh[k] = im;
+  }
+  function buildFarCell(cx, cz) {
+    const out = { pine: [], cotton: [], juniper: [] };
+    const x0 = cx * CELL, z0 = cz * CELL, FS = 16;
+    for (let j = 0; j < CELL / FS; j++) for (let i = 0; i < CELL / FS; i++) {
+      const id = (cx * 7919 + i) * 104729 + cz * 31 + j + 0.5;
+      const x = x0 + (i + hash(id * 0.013, 1.9)) * FS, z = z0 + (j + hash(id * 0.017, 2.7)) * FS;
+      if (Math.abs(x) < VALLEY && Math.abs(z) < VALLEY) continue;
+      const m = masks(x, z);
+      const grove = cl((fbm(x * 0.012 + 40, z * 0.012 + 70) - 0.85) * 2.2);
+      // Rough odds first, so most spots skip the height lookup.
+      const r = hash(id * 0.019, 3.3);
+      const forest = cl((m.moisture - 1.1) / 0.15) * (1 - m.canyon);
+      const desert = cl((0.86 - m.moisture) / 0.18) * (1 - m.mountain);
+      const pPine = (forest * (0.15 + grove * 0.55) + m.mountain * 0.12 * grove) * 4;
+      const pCotton = (1 - desert) * (1 - forest) * (1 - m.canyon) * cl((m.moisture - 0.95) / 0.2) * 0.05 * grove * 4;
+      const pJun = (1 - forest) * (0.02 + m.canyon * 0.05 + (1 - desert) * 0.02) * (0.5 + grove) * 4;
+      const kind = r < pPine ? 'pine' : r < pPine + pCotton ? 'cotton' : r < pPine + pCotton + pJun ? 'juniper' : null;
+      if (!kind) continue;
+      if (nearPOI(x, z, 6) || nearSite(x, z, 10) || riverInfo(x, z, m).core > 0.15) continue;
+      const h = height(x, z);
+      if (h > 215) continue;
+      const s = 0.8 + hash(id * 0.029, 5.9) * 0.5;
+      e.set(0, hash(id * 0.031, 6.3) * 6.28, 0); q.setFromEuler(e);
+      v.set(x, h - 0.3, z); sc.setScalar(s); m4.compose(v, q, sc);
+      out[kind].push(...m4.elements);
+    }
+    for (const k in out) out[k] = new Float32Array(out[k]);
+    return out;
+  }
+  function refillFar() {
+    for (const [k, im] of Object.entries(farMesh)) {
+      const arr = im.instanceMatrix.array, cap = im.instanceMatrix.count;
+      let n = 0;
+      for (const c of farCells.values()) { const a = c[k], cnt = a.length / 16; if (n + cnt > cap) break; arr.set(a, n * 16); n += cnt; }
+      im.count = n; im.instanceMatrix.needsUpdate = true;
+    }
+  }
+  function updateFar(px, pz) {
+    const ccx = Math.floor(px / CELL), ccz = Math.floor(pz / CELL), ck = `${ccx},${ccz}`;
+    let dirtyFar = false;
+    if (ck !== farCenter) {
+      farCenter = ck;
+      farTodo.length = 0;
+      const want = new Set();
+      for (let dz = -farRadius; dz <= farRadius; dz++) for (let dx = -farRadius; dx <= farRadius; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dz)) <= radius) continue; // the full detail cells cover this
+        const key = `${ccx + dx},${ccz + dz}`;
+        want.add(key);
+        if (!farCells.has(key)) farTodo.push([ccx + dx, ccz + dz, dx * dx + dz * dz]);
+      }
+      farTodo.sort((a, b) => a[2] - b[2]);
+      for (const key of farCells.keys()) if (!want.has(key)) { farCells.delete(key); dirtyFar = true; }
+    }
+    if (farTodo.length) { const [cx, cz] = farTodo.shift(); farCells.set(`${cx},${cz}`, buildFarCell(cx, cz)); dirtyFar = true; }
+    if (dirtyFar) refillFar();
+  }
+
   function update(px, pz) {
+    updateFar(px, pz);
     const ccx = Math.floor(px / CELL), ccz = Math.floor(pz / CELL), ck = `${ccx},${ccz}`;
     if (ck !== centerKey) {
       centerKey = ck;
@@ -152,9 +231,14 @@ export function createWilds(scene, material, { sampleHeight, collision }) {
   }
 
   // Build everything around (px, pz) at once, for the loading screen.
-  function settle(px, pz) { update(px, pz); while (todo.length) { const [cx, cz] = todo.shift(); cells.set(`${cx},${cz}`, buildCell(cx, cz)); } refill(); }
+  function settle(px, pz) {
+    update(px, pz);
+    while (todo.length) { const [cx, cz] = todo.shift(); cells.set(`${cx},${cz}`, buildCell(cx, cz)); }
+    while (farTodo.length) { const [cx, cz] = farTodo.shift(); farCells.set(`${cx},${cz}`, buildFarCell(cx, cz)); }
+    refill(); refillFar();
+  }
 
-  function setTier(name) { radius = RADIUS[name] || RADIUS.high; centerKey = ''; }
+  function setTier(name) { radius = RADIUS[name] || RADIUS.high; farRadius = FAR_RADIUS[name] ?? FAR_RADIUS.high; centerKey = ''; farCenter = ''; }
 
   return { update, settle, setTier };
 }
