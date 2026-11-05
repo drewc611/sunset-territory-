@@ -1,16 +1,19 @@
 // Quality tiers and automatic step down. On "auto" the game starts at Medium on
-// phones and High elsewhere, then watches frame times: if the median frame over
-// three seconds is slower than 18.5 ms it steps resolution down, then shadows.
+// phones and Ultra elsewhere, then watches frame times: if the median frame over
+// three seconds is slower than 18.5 ms it steps resolution down, then a tier.
+// Ultra adds ambient occlusion, a 4096 shadow map over a wider area and a longer
+// view; a laptop that can't hold it drops to High within a few seconds.
 export const TIERS = {
-  low: { dpr: 1, shadows: false, shadowSize: 512, grass: 0.45, post: false, fog: 650 },
-  medium: { dpr: 1.5, shadows: true, shadowSize: 1024, grass: 0.75, post: false, fog: 1000 },
-  high: { dpr: 2, shadows: true, shadowSize: 2048, grass: 1, post: true, fog: 1500 },
+  low: { dpr: 1, shadows: false, shadowSize: 512, shadowSpan: 60, grass: 0.45, post: false, ao: false, fog: 650 },
+  medium: { dpr: 1.5, shadows: true, shadowSize: 1024, shadowSpan: 50, grass: 0.75, post: false, ao: false, fog: 1000 },
+  high: { dpr: 2, shadows: true, shadowSize: 2048, shadowSpan: 60, grass: 1, post: true, ao: false, fog: 1500 },
+  ultra: { dpr: 2, shadows: true, shadowSize: 4096, shadowSpan: 90, grass: 1, post: true, ao: true, fog: 2200 },
 };
-const ORDER = ['low', 'medium', 'high'];
+const ORDER = ['low', 'medium', 'high', 'ultra'];
 
 export function createQuality({ renderer, scene, sun, props, touch, post, terrain, sky, onResize }) {
   const tierListeners = [];
-  let mode = 'auto', tier = touch ? 'medium' : 'high', scale = 1;
+  let mode = 'auto', tier = touch ? 'medium' : 'ultra', scale = 1;
   const samples = [];
   let timer = 0, cooldown = 4;
 
@@ -27,8 +30,10 @@ export function createQuality({ renderer, scene, sun, props, touch, post, terrai
       sun.shadow.mapSize.set(t.shadowSize, t.shadowSize);
       if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
     }
+    const cam = sun.shadow.camera;
+    if (cam.right !== t.shadowSpan) { Object.assign(cam, { left: -t.shadowSpan, right: t.shadowSpan, top: t.shadowSpan, bottom: -t.shadowSpan }); cam.updateProjectionMatrix(); }
     props.setGrassDensity(t.grass);
-    if (post) post.setEnabled(t.post);
+    if (post) { post.setEnabled(t.post); post.setAO(t.ao); }
     if (terrain) terrain.setTier(tier); // how many terrain chunks stream around you
     tierListeners.forEach((f) => f(tier));
     if (sky) sky.setFogFar(t.fog);     // and how far you see before the haze

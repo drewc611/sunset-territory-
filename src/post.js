@@ -4,9 +4,13 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
 
-// Post processing for the High tier only: half resolution bloom on the sun, lit
-// windows and campfires, then a warm painterly grade. Low and Medium render
+// Post processing for High and Ultra: half resolution bloom on the sun, lit
+// windows and campfires, then a warm painterly grade. Ultra adds ground contact
+// shading (GTAO) before the bloom. The scene renders into a 4x multisampled target,
+// since the canvas's own antialiasing doesn't apply once rendering goes through
+// the composer. Low and Medium render
 // straight to the screen, since a phone can't spare the extra full screen passes.
 // The vignette stays a CSS overlay (#vignette), which costs nothing.
 
@@ -26,9 +30,19 @@ const GradeShader = {
 };
 
 export function createPost(renderer, scene, camera, sky) {
-  const composer = new EffectComposer(renderer);
-  composer.addPass(new RenderPass(scene, camera));
   const size = renderer.getSize(new THREE.Vector2());
+  const pr = renderer.getPixelRatio();
+  const target = new THREE.WebGLRenderTarget(size.x * pr, size.y * pr, { type: THREE.HalfFloatType, samples: 4 });
+  const composer = new EffectComposer(renderer, target);
+  composer.addPass(new RenderPass(scene, camera));
+  // Contact shading where things meet the ground and each other: under eaves,
+  // between boulders, at the foot of every tree and post.
+  const ao = new GTAOPass(scene, camera, size.x * pr, size.y * pr);
+  ao.updateGtaoMaterial({ radius: 4, distanceExponent: 1.2, thickness: 3, scale: 1.6, samples: 16 });
+  ao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 12 });
+  ao.blendIntensity = 1;
+  ao.enabled = false;
+  composer.addPass(ao);
   const bloom = new UnrealBloomPass(new THREE.Vector2(size.x / 2, size.y / 2), 0.45, 0.5, 2.4); // threshold is pre tone map: the sun, lit windows and flames, not the sky
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
@@ -46,5 +60,7 @@ export function createPost(renderer, scene, camera, sky) {
     if (enabled) composer.render();
     else renderer.render(scene, camera);
   }
-  return { render, setEnabled, setSize, get enabled() { return enabled; } };
+  const aoOff = new URLSearchParams(location.search).get('ao') === '0'; // ?ao=0, for A/B checks
+  function setAO(v) { ao.enabled = v && !aoOff; }
+  return { render, setEnabled, setAO, setSize, get enabled() { return enabled; }, get ao() { return ao.enabled; } };
 }

@@ -69,7 +69,7 @@ export function createUi({ onSetting, onNewGame, onPhoto }) {
       <section><h2>Settings</h2>
         <label><input type="checkbox" id="setSound" ${settings.sound !== false ? 'checked' : ''}> Sound</label>
         <label>Quality <select id="setQuality">
-          ${['auto', 'low', 'medium', 'high'].map((q) => `<option value="${q}" ${settings.quality === q ? 'selected' : ''}>${q[0].toUpperCase() + q.slice(1)}</option>`).join('')}
+          ${['auto', 'low', 'medium', 'high', 'ultra'].map((q) => `<option value="${q}" ${settings.quality === q ? 'selected' : ''}>${q[0].toUpperCase() + q.slice(1)}</option>`).join('')}
         </select></label>
         <label><input type="checkbox" id="setInvert" ${settings.invertCam ? 'checked' : ''}> Invert camera drag</label>
         <label><input type="checkbox" id="setBig" ${settings.bigControls ? 'checked' : ''}> Larger touch controls</label>

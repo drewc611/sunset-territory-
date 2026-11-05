@@ -25,7 +25,7 @@ function loadTex(loader, url, anisotropy) {
 //   far:  1024 m chunks every 32 m out to the fog. Where near chunks are showing,
 //         far vertices are sunk 8 m so they hide underneath.
 const NEAR = 256, NEAR_RES = 64, FAR = 1024, FAR_RES = 32;
-export const TERRAIN_TIERS = { low: { near: 1, far: 1 }, medium: { near: 1, far: 1 }, high: { near: 2, far: 2 } };
+export const TERRAIN_TIERS = { low: { near: 1, far: 1 }, medium: { near: 1, far: 1 }, high: { near: 2, far: 2 }, ultra: { near: 3, far: 2 } };
 
 export function createTerrain(scene, renderer, base) {
   const loader = new THREE.TextureLoader();
