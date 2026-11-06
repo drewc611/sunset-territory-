@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { POIS, LAKE, height } from './world.js';
+import { POIS, LAKE, height, groundY } from './world.js';
+import { sites } from './sites.js';
 import { Builder } from './models.js';
 
 // Odd jobs: the game's loop. Townsfolk offer work, the work sends you across the
@@ -11,6 +12,8 @@ import { Builder } from './models.js';
 //   scout    reach a place, then report back to the giver
 //   water    ride into Caldwell Lake, then report back
 //   strays   ride close to three stray steers to drive them home, then report back
+//   visit    (generated) ride out to a settlement and look it over, then report back
+//   fish     (generated) bring the giver a fish over a given weight
 
 const place = (name) => POIS.find((p) => p.name === name);
 export const DEED_PRICE = 60;
@@ -93,6 +96,17 @@ const OFFERS = [
   (c, to, where) => `${to} out at ${where} sent for ${c}. Can you carry it?`,
   (c, to, where) => `Would you run ${c} over to ${where}? ${to} is expecting it.`,
 ];
+const VISIT = {
+  sheriff: (w) => [`Nobody's come in from ${w} in a week. Ride out and see that all's well, then tell me.`, `All quiet at ${w}. Obliged for the ride.`],
+  miner: (w) => [`My partner went to ${w} for supplies and hasn't come back. Would you look in on him?`, `He's fine? Drunk, more like. Thanks for looking.`],
+  townswoman: (w) => [`My sister lives out at ${w}. I'd rest easier if someone looked in on her.`, `Thank you. That's a weight off.`],
+};
+const FISH_ASK = [
+  (lb) => `I've a mind for fish for supper. Bring me one over ${lb} pounds and I'll pay well.`,
+  (lb) => `The cook's out of meat. A fish, ${lb} pounds or better, would do.`,
+];
+const STRAYS_ASK = (dir) => `Some of my steers broke through the wire and wandered ${dir}. Ride up close behind each one and they'll turn for home.`;
+const DIRS = ['north', 'north east', 'east', 'south east', 'south', 'south west', 'west', 'north west'];
 const THANKS = ['Right on time. Here, for your trouble.', 'Obliged. That saves me a ride.', 'Good. I was starting to worry. Here\u2019s your pay.', 'Much appreciated. Come by again.'];
 const LINES_BY_ROLE = {
   merchant: 'Store\u2019s open till dark. After that, knock.', sheriff: 'Keep your iron holstered in town and we\u2019ll get along.',
@@ -126,8 +140,12 @@ export function createJobs(scene, npcs, propMat, people = null) {
     const id = `g:${giverId}:${n}`;
     if (gen.has(id)) return gen.get(id);
     const g = who(giverId);
+    const r = hashS(id), rk = hashS(id + 'k');
+    // Some people want something other than a delivery.
+    if (g.site && g.role === 'rancher' && rk < 0.45) return remember(straysJob(id, g));
+    if (g.site && VISIT[g.role] && rk < 0.35) { const v = visitJob(id, g); if (v) return remember(v); }
+    if (g.site && (g.role === 'merchant' || g.role === 'townswoman') && rk > 0.72) return remember(fishJob(id, g));
     // Someone else, 800 m to 6 km away, preferring other settlements.
-    const r = hashS(id);
     // One person per settlement, the nearest six settlements, then pick someone.
     const bySite = new Map();
     for (const p of people.all()) {
@@ -149,6 +167,33 @@ export function createJobs(scene, npcs, propMat, people = null) {
     gen.set(id, j);
     return j;
   }
+  function remember(j) { gen.set(j.id, j); return j; }
+
+  // Three steers out 250 to 500 m from the ranch, to drive home.
+  function straysJob(id, g) {
+    const site = sites().find((s) => s.name === g.site) || place(g.site) || g;
+    const a = hashS(id + 'a') * Math.PI * 2, d = 250 + hashS(id + 'd') * 250;
+    const area = { x: site.x + Math.sin(a) * d, z: site.z + Math.cos(a) * d };
+    const dir = DIRS[Math.round(((a / (Math.PI * 2)) * 8)) % 8];
+    return { id, giver: g.id, kind: 'strays', generated: true, area, home: { x: site.x, z: site.z }, pay: 8 + Math.round(d / 100),
+      offer: STRAYS_ASK(dir), thanks: "That's all of them. Here's your pay, and thank you." };
+  }
+  // Look in on another settlement 1.5 to 5 km away, and report back.
+  function visitJob(id, g) {
+    const near = sites().filter((s) => s.name !== g.site).map((s) => ({ s, d: Math.hypot(s.x - g.x, s.z - g.z) }))
+      .filter((e) => e.d > 1500 && e.d < 5000).sort((a, b) => a.d - b.d).slice(0, 6);
+    if (!near.length) return null;
+    const { s, d } = near[Math.floor(hashS(id + 'v') * near.length)];
+    const [offer, thanks] = VISIT[g.role](s.name);
+    return { id, giver: g.id, kind: 'visit', generated: true, spot: { x: s.x, z: s.z, name: s.name }, pay: Math.round(4 + (d / 1000) * 4), offer, thanks };
+  }
+  // A fish of at least some weight.
+  function fishJob(id, g) {
+    const lb = [0.5, 1, 1, 1.5, 2][Math.floor(hashS(id + 'f') * 5)];
+    return { id, giver: g.id, kind: 'fish', generated: true, lb, pay: Math.round(3 + lb * 3), offer: FISH_ASK[Math.floor(hashS(id + 'o') * FISH_ASK.length)](lb),
+      thanks: "That'll fry up fine. Here." };
+  }
+  let creel = null; // the fishing creel, set by main
 
   function offerFor(personId) {
     return JOBS.find((j) => j.giver === personId && !isDone(j.id) && (!j.after || j.after.every(isDone))) || genJobFor(personId);
@@ -160,7 +205,7 @@ export function createJobs(scene, npcs, propMat, people = null) {
     for (const [x, z] of spots) {
       const m = new THREE.Mesh(cowMesh, propMat);
       m.castShadow = true;
-      m.position.set(x, height(x, z), z);
+      m.position.set(x, groundY(x, z), z);
       m.rotation.y = Math.random() * 6.28;
       scene.add(m);
       cows.push({ m, x, z, herded: false, t: 0, gone: false });
@@ -182,6 +227,8 @@ export function createJobs(scene, npcs, propMat, people = null) {
       return { x: p.x, z: p.z, label };
     }
     if (j.kind === 'water') return { x: LAKE.x, z: LAKE.z, label: 'Fill the canteen in Caldwell Lake' };
+    if (j.kind === 'visit') return { x: j.spot.x, z: j.spot.z, label: `Look in on ${j.spot.name}` };
+    if (j.kind === 'fish') return { x: back.x, z: back.z, label: `Catch a fish over ${j.lb} lb for ${back.name}` };
     if (j.kind === 'strays') {
       const left = cows.filter((c) => !c.herded);
       const c = left[0];
@@ -217,6 +264,15 @@ export function createJobs(scene, npcs, propMat, people = null) {
     // Reporting back.
     if (aj && aj.giver === personId && a.stage === 'report') {
       return { name: p.name, text: (aj.report || aj.thanks) + `  (+$${aj.pay})`, choices: [{ label: 'Ride on', run: () => {} }], onOpen: () => pay(aj) };
+    }
+    if (aj && aj.kind === 'fish' && aj.giver === personId && creel) {
+      const fits = creel.filter((f) => f.lb >= aj.lb).sort((x, y) => x.lb - y.lb)[0];
+      if (fits) {
+        creel.splice(creel.indexOf(fits), 1);
+        return { name: p.name, text: `A ${fits.lb} pounder. ` + aj.thanks + `  (+$${aj.pay})`, choices: [{ label: 'Ride on', run: () => {} }], onOpen: () => pay(aj) };
+      }
+      const hint = creel.length ? ' Those are too small.' : '';
+      return { name: p.name, text: `Still hoping for that fish, ${aj.lb} pounds or better.${hint} The store sells rods if you need one.`, choices: [{ label: 'On my way', run: () => {} }] };
     }
     if (aj && aj.giver === personId) {
       return { name: p.name, text: "Still waiting on that job. " + (target()?.label || ''), choices: [{ label: 'On my way', run: () => {} }] };
@@ -269,11 +325,15 @@ export function createJobs(scene, npcs, propMat, people = null) {
         emit({ type: 'stage', text, bell: !!j.bell });
       }
     }
+    if (a.stage === 'go' && j.kind === 'visit' && Math.hypot(player.x - j.spot.x, player.z - j.spot.z) < 30) {
+      a.stage = 'report';
+      emit({ type: 'stage', text: `Folks at ${j.spot.name} are fine. Ride back to ${who(j.giver).name}.` });
+    }
     if (a.stage === 'go' && j.kind === 'water') {
       if (Math.hypot(player.x - LAKE.x, player.z - LAKE.z) < LAKE.r * 0.45) { a.stage = 'report'; emit({ type: 'stage', text: 'Canteen filled. Back to Doc Wilder.' }); }
     }
     if (j.kind === 'strays') {
-      const home = place("Drover's Camp");
+      const home = j.home || place("Drover's Camp");
       for (const c of cows) {
         if (c.gone) continue;
         if (!c.herded && Math.hypot(player.x - c.x, player.z - c.z) < 7) { c.herded = true; emit({ type: 'stage', text: 'The steer turns for home.' }); }
@@ -288,7 +348,7 @@ export function createJobs(scene, npcs, propMat, people = null) {
         }
         c.m.position.set(c.x, height(c.x, c.z), c.z);
       }
-      if (a.stage === 'go' && cows.length && cows.every((c) => c.herded)) { a.stage = 'report'; emit({ type: 'stage', text: 'All three are headed home. Back to Jory.' }); }
+      if (a.stage === 'go' && cows.length && cows.every((c) => c.herded)) { a.stage = 'report'; emit({ type: 'stage', text: `All three are headed home. Back to ${who(j.giver).name}.` }); }
     }
   }
 
@@ -306,5 +366,5 @@ export function createJobs(scene, npcs, propMat, people = null) {
     }
   }
 
-  return { state, talk, update, target, load, on: (f) => listeners.push(f) };
+  return { state, talk, update, target, load, on: (f) => listeners.push(f), setCreel: (c) => { creel = c; } };
 }

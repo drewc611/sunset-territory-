@@ -35,6 +35,8 @@ Andrew asked for no open decisions and a finished game by the end of November, s
 
 - Fishing (Nov 5): the first thing to do out in the territory that isn't a job. On foot, facing the lake or a river with real water under the float, the action button casts. A bite comes after 5 to 17 s and you have 1.3 s to pull. Perch and bass in the lake; trout in mountain and wet rivers, catfish in dry lowland ones. The creel holds six, so a trip to a merchant is part of it, and fish sell for $1 to $8, below what deliveries pay per minute, so jobs stay the way to the deed. No combat, no hunting: wildlife stays something to watch.
 
+- Generated work (Nov 5): settlers no longer only want deliveries. By role, about a quarter of offers are something else: ranchers send you after three strays 250 to 500 m out, marshals, miners and townswomen ask you to look in on a settlement 1.5 to 5 km away and report back, and merchants and townswomen want a fish over a set weight (0.5 to 2 lb), which ties fishing into the job loop. Each kind is picked again from the job's id after every job, so the same person varies. Across the 84 settlers the first offers came out 62 deliveries, 15 visits, 11 fish and 4 strays.
+
 ## The territory
 - 20 km x 20 km. Terrain streams in 256 m chunks near the player and 1 km chunks out to the fog, built in a web worker (src/terrain-worker.js). Height and biome rules live in src/world.js and src/surface.js and are shared by the worker, collision and the minimap.
 - No floating origin yet: 32 bit positions at 10 km are good to about 1 mm, which is fine for terrain and riding. Revisit if shadows or the camera shimmer at the edges.
