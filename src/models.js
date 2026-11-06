@@ -93,6 +93,32 @@ export class Builder {
   }
 }
 
+// A jointed figure as one draw call. Joints are bones; each part is skinned rigidly
+// to its joint. Call once the bones are posed for binding (root at the origin). The
+// animation code keeps rotating the joints as before.
+const _inv = new THREE.Matrix4(), _bm = new THREE.Matrix4();
+export function skinRig(root, parts, material) {
+  root.updateMatrixWorld(true);
+  _inv.copy(root.matrixWorld).invert();
+  const bones = [], index = new Map();
+  const geos = parts.map(([bone, geo]) => {
+    if (!index.has(bone)) { index.set(bone, bones.length); bones.push(bone); }
+    const g = geo.clone().applyMatrix4(_bm.multiplyMatrices(_inv, bone.matrixWorld));
+    const n = g.attributes.position.count, si = new Uint16Array(n * 4), sw = new Float32Array(n * 4);
+    for (let i = 0; i < n; i++) { si[i * 4] = index.get(bone); sw[i * 4] = 1; }
+    g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(si, 4));
+    g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sw, 4));
+    return g;
+  });
+  const mesh = new THREE.SkinnedMesh(mergeGeometries(geos, false), material);
+  mesh.castShadow = true;
+  mesh.frustumCulled = false; // limbs swing outside the bind pose bounds; the player is always in view anyway
+  root.add(mesh);
+  mesh.updateMatrixWorld(true);
+  mesh.bind(new THREE.Skeleton(bones));
+  return mesh;
+}
+
 // Color helpers.
 export const shadeHex = (hex, k) => _c.set(hex).multiplyScalar(k).clone();
 function vary(hex, rand, amt = 0.08) {

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Builder } from './models.js';
+import { Builder, skinRig } from './models.js';
 import { createRig } from './character.js';
 
 // A jointed low poly horse built in code, with real gaits: a four beat walk, a
@@ -21,8 +21,8 @@ const lower = () => part((b) => {
 
 export function createHorse(scene) {
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, metalness: 0 });
-  const mesh = (geo) => { const m = new THREE.Mesh(geo, mat); m.castShadow = true; return m; };
-  const joint = (parent, x, y, z, geo) => { const j = new THREE.Group(); j.position.set(x, y, z); parent.add(j); if (geo) j.add(mesh(geo)); return j; };
+  const parts = [];
+  const joint = (parent, x, y, z, geo) => { const j = new THREE.Bone(); j.position.set(x, y, z); parent.add(j); if (geo) parts.push([j, geo]); return j; };
 
   const root = new THREE.Group();
   root.rotation.order = 'YXZ';
@@ -71,6 +71,9 @@ export function createHorse(scene) {
     const knee = joint(hip, 0, front ? -0.5 : -0.52, front ? 0 : -0.07, lower());
     legs.push({ hip, knee, front, left: x > 0 });
   }
+
+  // One draw call for the whole horse.
+  skinRig(root, parts, mat);
 
   // Rider seat on the saddle.
   const seat = new THREE.Group();
