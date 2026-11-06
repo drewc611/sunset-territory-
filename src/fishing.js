@@ -100,7 +100,7 @@ export function createFishing({ scene, audio, ui, shop }) {
     return canFish(foot, mounted) ? 'FISH' : null;
   }
 
-  function update(dt, foot, mounted, t) {
+  function update(dt, foot, mounted, t, grip = null) {
     if (state === 'idle') return;
     if (mounted || Math.hypot(foot.x - from.x, foot.z - from.z) > 1.5) { stop(); return; }
     timer -= dt;
@@ -113,9 +113,10 @@ export function createFishing({ scene, audio, ui, shop }) {
       if (timer <= 0) { state = 'waiting'; timer = 6 + Math.random() * 10; ui.toast('It got away.', 2); }
     }
     float.position.set(spot.x, spot.y + dip, spot.z);
-    // Rod held out over the water from the right hand.
+    // Rod held out over the water from the right hand (the rig's grip when there is one).
     const h = foot.heading;
-    rod.position.set(foot.x + Math.sin(h) * 0.35 - Math.cos(h) * 0.25, foot.y + 1.0, foot.z + Math.cos(h) * 0.35 + Math.sin(h) * 0.25);
+    if (grip) rod.position.copy(grip);
+    else rod.position.set(foot.x + Math.sin(h) * 0.35 - Math.cos(h) * 0.25, foot.y + 1.0, foot.z + Math.cos(h) * 0.35 + Math.sin(h) * 0.25);
     rod.rotation.set(0.95, h, 0, 'YXZ');
     tip.set(0, 2.2, 0).applyEuler(rod.rotation).add(rod.position);
     const p = lineGeo.attributes.position;

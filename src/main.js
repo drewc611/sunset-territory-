@@ -152,7 +152,7 @@ function stepFoot(dt, ctl) {
   const rig = horse.rig.root;
   rig.position.set(foot.x, foot.y, foot.z);
   rig.rotation.set(0, foot.heading, 0);
-  horse.rig.update(dt, 'walk', Math.abs(foot.speed));
+  horse.rig.update(dt, fishing.active ? 'fish' : 'walk', Math.abs(foot.speed));
 }
 
 function dismount() {
@@ -247,6 +247,7 @@ const shop = createShop({
   onStage(town, km) { stageTo(town, km); },
 });
 const fishing = createFishing({ scene, audio, ui, shop });
+const gripPos = new THREE.Vector3();
 jobs.setCreel(fishing.creel);
 const lantern = new THREE.PointLight(0xffc070, 0, 24, 2);
 scene.add(lantern);
@@ -491,7 +492,8 @@ renderer.setAnimationLoop((now) => {
   wildlife.update(dt, { x: focus.x, z: focus.z, speed: Math.abs(player.mounted ? rider.speed : foot.speed) });
   props.update(dt, s, focus);
   npcs.update(dt, focus);
-  fishing.update(dt, foot, player.mounted, now / 1000);
+  if (fishing.active && horse.rig.hand) { horse.rig.hand.updateWorldMatrix(true, false); horse.rig.hand.localToWorld(gripPos.set(0, -0.28, 0)); }
+  fishing.update(dt, foot, player.mounted, now / 1000, fishing.active && horse.rig.hand ? gripPos : null);
   jobs.update(dt, focus, player.mounted, rider.speed, s.night);
   hud.update(focus, clockH, { onFoot: !player.mounted, action: ui.busy ? null : actionLabel(), target: jobs.target() });
   ui.update(dt, jobs);
