@@ -72,6 +72,16 @@ export function createTerrain(scene, renderer, base) {
                 + texture2D(tRock, vWPos.xy * 0.11).rgb * bw.z;
         float rl = lum(rt) / ${ROCK_LUM.toFixed(3)};
         vec3 rockCol = vec3(0.30, 0.25, 0.21) * rl * vTint;
+        // Strata: level bands of harder and softer rock, wavering a little, strongest
+        // in red canyon country (where the tint runs red) and faint elsewhere.
+        {
+          float red = clamp((vTint.r - vTint.g) * 1.8, 0.0, 1.0);
+          float y = vWPos.y + sin(vWPos.x * 0.031 + vWPos.z * 0.023) * 2.2 + (rl - 1.0) * 0.8;
+          float band = sin(y * 1.15) * 0.6 + sin(y * 0.43 + 1.7) * 0.4;
+          float hard = smoothstep(-0.2, 0.6, band);
+          vec3 cream = vec3(1.18, 1.08, 0.92), dark = vec3(0.82, 0.74, 0.70);
+          rockCol *= mix(vec3(1.0), mix(dark, cream, hard), 0.25 + 0.6 * red);
+        }
         // Dirt: rock texture at a finer scale, dusty tint; mud by the lake.
         float dl = lum(texture2D(tRock, p * 0.37 + 0.5).rgb) / ${ROCK_LUM.toFixed(3)};
         vec3 dirtCol = mix(vec3(0.34, 0.24, 0.14), vec3(0.12, 0.09, 0.06), vSplat.z) * mix(1.0, dl, 0.6) * vTint;
@@ -79,10 +89,13 @@ export function createTerrain(scene, renderer, base) {
         float macro = texture2D(tGrass, p * 0.0043).g / grassAvg.g;
         float dirtW = clamp(vSplat.x + (macro - 1.0) * 0.25, 0.0, 1.0);
         dirtW = max(dirtW, vSplat.z);
-        float rockW = smoothstep(0.24, 0.42, slope + (rl - 1.0) * 0.12);
+        float rockW = smoothstep(0.26, 0.4, slope + (rl - 1.0) * 0.22); // the rock's own relief breaks the edge up
         // The valley ridge goes to rock with height; out in the territory only slope does.
         rockW = max(rockW, smoothstep(20.0, 30.0, vWPos.y) * 0.75 * (1.0 - smoothstep(230.0, 480.0, length(vWPos.xz))));
-        vec3 alb = mix(grassCol, dirtCol, smoothstep(0.25, 0.75, dirtW));
+        // Height blend: dirt shows first in the low spots of the grass, so worn
+        // ground breaks up in patches instead of fading in like a smudge.
+        float hb = clamp((dirtW - 0.5) * 2.6 + (dl - gl) * 0.9 + 0.5, 0.0, 1.0);
+        vec3 alb = mix(grassCol, dirtCol, smoothstep(0.38, 0.62, hb));
         alb = mix(alb, rockCol, rockW);
         alb = mix(alb, vec3(0.62, 0.6, 0.57), smoothstep(0.2, 0.6, vSplat.y) * (1.0 - rockW * 0.6));
         alb *= mix(0.86, 1.14, clamp(macro * 0.5, 0.0, 1.0));
