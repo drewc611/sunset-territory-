@@ -4,10 +4,10 @@
 // Ultra adds ambient occlusion, a 4096 shadow map over a wider area and a longer
 // view; a laptop that can't hold it drops to High within a few seconds.
 export const TIERS = {
-  low: { dpr: 1, shadows: false, shadowSize: 512, shadowSpan: 60, grass: 0.45, post: false, ao: false, fog: 650 },
-  medium: { dpr: 1.5, shadows: true, shadowSize: 1024, shadowSpan: 50, grass: 0.75, post: false, ao: false, fog: 1000 },
-  high: { dpr: 2, shadows: true, shadowSize: 2048, shadowSpan: 60, grass: 1, post: true, ao: false, fog: 1500 },
-  ultra: { dpr: 2, shadows: true, shadowSize: 4096, shadowSpan: 90, grass: 1, post: true, ao: true, fog: 2200 },
+  low: { dpr: 1, shadows: false, shadowSize: 512, shadowSpan: 60, grass: 0.45, grassR: 28, post: false, ao: false, fog: 650 },
+  medium: { dpr: 1.5, shadows: true, shadowSize: 1024, shadowSpan: 50, grass: 0.75, grassR: 34, post: false, ao: false, fog: 1000 },
+  high: { dpr: 2, shadows: true, shadowSize: 2048, shadowSpan: 60, grass: 1, grassR: 40, post: true, ao: false, fog: 1500 },
+  ultra: { dpr: 2, shadows: true, shadowSize: 4096, shadowSpan: 90, grass: 1, grassR: 56, post: true, ao: true, fog: 2200 },
 };
 const ORDER = ['low', 'medium', 'high', 'ultra'];
 
@@ -32,7 +32,7 @@ export function createQuality({ renderer, scene, sun, props, touch, post, terrai
     }
     const cam = sun.shadow.camera;
     if (cam.right !== t.shadowSpan) { Object.assign(cam, { left: -t.shadowSpan, right: t.shadowSpan, top: t.shadowSpan, bottom: -t.shadowSpan }); cam.updateProjectionMatrix(); }
-    props.setGrassDensity(t.grass);
+    props.setGrassDensity(t.grass, t.grassR);
     if (post) { post.setEnabled(t.post); post.setAO(t.ao); }
     if (terrain) terrain.setTier(tier); // how many terrain chunks stream around you
     tierListeners.forEach((f) => f(tier));
