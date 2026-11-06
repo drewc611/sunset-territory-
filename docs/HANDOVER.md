@@ -45,6 +45,8 @@ Andrew asked for no open decisions and a finished game by the end of November, s
 
 - Regression pass on the Nov 5 stack (#17 to #25 together): the written job chain still runs from the nails to the deed; a save taken mid-game (money, rod, creel, record fish, a generated visit job, a found landmark) comes back intact after a reload; on an iPhone 13 in portrait the photo bar fits the 390 px width with no sideways scroll; draw calls are unchanged at 124 (High) and 59 (Low). It turned up two journal accessibility bugs, fixed on claude/journal-contrast: the Quality dropdown's text was pale cream on paper, and keyboard focus in the journal drew a paper-colored ring on a paper page, so it was invisible. Both are ink now.
 
+- Road traffic (Nov 5): one covered wagon per road (36), each with a driver and a walking draft horse, hauling end to end at 2.4 to 3.6 m/s, resting 20 to 60 s at each town and turning back. All move all the time; those within 1.5 km are drawn as four instanced meshes, so it costs 8 draw calls on High and 4 on Low when a wagon is near, and none otherwise. Wagons have no collision; you can ride through one. Building it showed the wagon's canvas had always been rotated down into the bed, so camp wagons and the wreck now have their covers too.
+
 ## The territory
 - 20 km x 20 km. Terrain streams in 256 m chunks near the player and 1 km chunks out to the fog, built in a web worker (src/terrain-worker.js). Height and biome rules live in src/world.js and src/surface.js and are shared by the worker, collision and the minimap.
 - No floating origin yet: 32 bit positions at 10 km are good to about 1 mm, which is fine for terrain and riding. Revisit if shadows or the camera shimmer at the edges.

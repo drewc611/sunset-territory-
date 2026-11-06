@@ -393,7 +393,7 @@ export function wagon() {
   for (let i = 0; i < 4; i++) {
     b.add(new THREE.TorusGeometry(1.1, 0.06, 4, 12, Math.PI), 0x8a8070, { y: 1.4, z: -1.3 + i * 0.87 });
   }
-  b.add(new THREE.CylinderGeometry(1.1, 1.1, 3.0, 10, 1, true, -Math.PI / 2, Math.PI), 0xe0d4b8, { y: 1.45, rx: Math.PI / 2 }, {});
+  b.add(new THREE.CylinderGeometry(1.1, 1.1, 3.0, 10, 1, true, -Math.PI / 2, Math.PI), 0xe0d4b8, { y: 1.45, rx: -Math.PI / 2 }, {}); // the half facing up
   for (const [x, z] of [[-1, -1.2], [1, -1.2], [-1, 1.2], [1, 1.2]]) {
     b.add(new THREE.CylinderGeometry(0.6, 0.6, 0.1, 10), 0x4a3424, { x, y: 0.6, z, rz: Math.PI / 2 });
   }
