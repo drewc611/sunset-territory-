@@ -66,7 +66,8 @@ export function createProps(scene, base, sampleHeight = null) {
   scene.add(water);
 
   // Grass blades around the rider, re-laid when the rider crosses a 10m cell.
-  const GR = 40, GSP = 0.9, GN = Math.floor((GR * 2 / GSP) ** 2);
+  const GR_MAX = 56, GSP = 0.9, GN = Math.ceil(Math.PI * (GR_MAX / GSP) ** 2); // a round patch; radius per tier, up to GR_MAX
+  let GR = 40;
   // A tuft of five tapered blades, darker at the root, leaning slightly outward.
   const bladeGeo = new THREE.BufferGeometry();
   {
@@ -132,11 +133,15 @@ export function createProps(scene, base, sampleHeight = null) {
       const gx = gx0 + i, gz = gz0 + j, r1 = hash(gx, gz), r2 = hash(gz, gx);
       const x = gx * GSP + r1 * GSP, z = gz * GSP + r2 * GSP;
       if (r1 < 0.25 || r2 > grassDensity) continue;
+      // Round, and thinning toward the rim so the grass fades out instead of ending in a line.
+      const rr = Math.hypot(x - px, z - pz) / GR;
+      if (rr > 1 || n >= GN) continue;
+      const rim = rr < 0.7 ? 1 : 1 - (rr - 0.7) / 0.3;
       const h = (sampleHeight && sampleHeight(x, z)) ?? height(x, z);
       if (r1 > 0.25 + grassy(x, z, h) * 0.75 || nearPOI(x, z, 2)) continue;
       dummy.position.set(x, h, z);
       dummy.rotation.set(0, r1 * 6.28, 0);
-      const sc = 0.8 + r2 * 0.7;
+      const sc = (0.8 + r2 * 0.7) * (0.35 + 0.65 * rim);
       dummy.scale.set(sc, sc * (0.8 + r1 * 0.6), sc);
       dummy.updateMatrix();
       grass.setMatrixAt(n++, dummy.matrix);
@@ -455,7 +460,7 @@ export function createProps(scene, base, sampleHeight = null) {
     dustGeo.attributes.position.needsUpdate = true;
   }
 
-  function setGrassDensity(d) { grassDensity = d; grassCell = null; }
+  function setGrassDensity(d, radius = 40) { grassDensity = d; GR = Math.min(GR_MAX, radius); grassCell = null; }
 
   // Distance to the nearest campfire, for crackle volume.
   function nearFire(x, z) {
