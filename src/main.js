@@ -37,7 +37,7 @@ const touch = matchMedia('(hover: none)').matches;
 const canvas = document.getElementById('game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = THREE.PCFShadowMap; // three 0.18x folded the soft variant into this one
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.info.autoReset = false; // reset once per frame so the perf HUD counts every pass
 

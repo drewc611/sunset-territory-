@@ -28,6 +28,8 @@ Andrew asked for no open decisions and a finished game by the end of November, s
 - The first in-game day is always clear weather.
 - Second job chain: four landmark jobs (Danner Mine, Sandstone Arch, Lookout Tower at night, Old Mission bell), unlocked by finishing jobs in the first chain. They pay on top of the deed money; there's nothing yet to spend the extra on.
 
+- Dependencies (Nov 5): three 0.160.1 to 0.187.0 and Vite 6.4.5 to 8.3.5, done by hand on claude/three-upgrade instead of merging Dependabot #15, which was cut from an older main. The patched shaders compiled unchanged; screenshots at four views matched the old build to a mean of under 2/255 per pixel. The only change needed: three dropped PCFSoftShadowMap, so the renderer uses PCFShadowMap. Close #15 once this merges.
+
 ## The territory
 - 20 km x 20 km. Terrain streams in 256 m chunks near the player and 1 km chunks out to the fog, built in a web worker (src/terrain-worker.js). Height and biome rules live in src/world.js and src/surface.js and are shared by the worker, collision and the minimap.
 - No floating origin yet: 32 bit positions at 10 km are good to about 1 mm, which is fine for terrain and riding. Revisit if shadows or the camera shimmer at the edges.
