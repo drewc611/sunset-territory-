@@ -41,6 +41,8 @@ Andrew asked for no open decisions and a finished game by the end of November, s
 
 - Photo mode (Nov 5): P, or the journal's Photo mode button on touch. The HUD hides and one leather strip runs along the bottom edge (per DESIGN.md: nothing in the center). Drag to orbit, drag up and down to tilt, scroll or + and − to move in. Save picture downloads a PNG of the frame, named by game day and time, taken right after the frame is drawn so the renderer doesn't need preserveDrawingBuffer. The CSS vignette isn't in the saved file. Meant for the soft launch: players can share pictures without a screenshot tool.
 
+- Third-party notices (Nov 5): the minified bundle had no license text in it, so three.js's MIT notice (and Vite's, for its small module preload helper) wasn't shipping with the game. The build now writes THIRD-PARTY-NOTICES.txt next to index.html from the installed packages' own license files, and the journal has an About section linking it and assets/LICENSES.md.
+
 ## The territory
 - 20 km x 20 km. Terrain streams in 256 m chunks near the player and 1 km chunks out to the fog, built in a web worker (src/terrain-worker.js). Height and biome rules live in src/world.js and src/surface.js and are shared by the worker, collision and the minimap.
 - No floating origin yet: 32 bit positions at 10 km are good to about 1 mm, which is fine for terrain and riding. Revisit if shadows or the camera shimmer at the edges.

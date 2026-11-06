@@ -98,3 +98,7 @@ body.photo #hud, body.photo #dialog { display: none; }
 #photoBar button { font-family: var(--font-display); font-size: 15px; min-width: 44px; min-height: 40px; background: var(--leather); color: var(--paper); border: 2px solid var(--brass); padding: 4px 12px; cursor: pointer; }
 #photoBar button:focus-visible { outline: 3px solid var(--paper); outline-offset: 2px; }
 @media (max-width: 560px) { #photoBar span { display: none; } }
+
+/* Links in the journal: leather, not browser blue. */
+#jBody a { color: var(--leather); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+#jBody a:focus-visible { outline: 3px solid var(--leather); outline-offset: 2px; }
