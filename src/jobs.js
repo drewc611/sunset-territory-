@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { POIS, LAKE, height, groundY } from './world.js';
 import { sites } from './sites.js';
+import { landmarks } from './landmarks.js';
 import { Builder } from './models.js';
 
 // Odd jobs: the game's loop. Townsfolk offer work, the work sends you across the
@@ -101,6 +102,12 @@ const VISIT = {
   miner: (w) => [`My partner went to ${w} for supplies and hasn't come back. Would you look in on him?`, `He's fine? Drunk, more like. Thanks for looking.`],
   townswoman: (w) => [`My sister lives out at ${w}. I'd rest easier if someone looked in on her.`, `Thank you. That's a weight off.`],
 };
+// The same, but out to a landmark rather than a settlement.
+const VISIT_LANDMARK = {
+  sheriff: (w) => [`A rider saw smoke out by ${w}. Go have a look and tell me what you find.`, `Nothing there? Good. Better a wasted ride than a grass fire.`],
+  miner: (w) => [`There's talk of color in the rock near ${w}. Ride out and see if anyone's staked it.`, `Nobody's claim on it? Then it's mine to find. Obliged.`],
+  townswoman: (w) => [`Folks talk about a place out past us called ${w}. I'll never get out there myself. Would you go, and tell me what it's like?`, `I'd never have pictured it. Thank you for telling me.`],
+};
 const FISH_ASK = [
   (lb) => `I've a mind for fish for supper. Bring me one over ${lb} pounds and I'll pay well.`,
   (lb) => `The cook's out of meat. A fish, ${lb} pounds or better, would do.`,
@@ -180,12 +187,16 @@ export function createJobs(scene, npcs, propMat, people = null) {
   }
   // Look in on another settlement 1.5 to 5 km away, and report back.
   function visitJob(id, g) {
-    const near = sites().filter((s) => s.name !== g.site).map((s) => ({ s, d: Math.hypot(s.x - g.x, s.z - g.z) }))
-      .filter((e) => e.d > 1500 && e.d < 5000).sort((a, b) => a.d - b.d).slice(0, 6);
+    const within = (list) => list.filter((s) => s.name !== g.site).map((s) => ({ s, d: Math.hypot(s.x - g.x, s.z - g.z) }))
+      .filter((e) => e.d > 1500 && e.d < 5000).sort((a, b) => a.d - b.d);
+    // About a third of the time, out to a landmark instead of a settlement.
+    const marks = within(landmarks()).slice(0, 3);
+    const toMark = marks.length && hashS(id + 'l') < 0.35;
+    const near = toMark ? marks : within(sites()).slice(0, 6);
     if (!near.length) return null;
     const { s, d } = near[Math.floor(hashS(id + 'v') * near.length)];
-    const [offer, thanks] = VISIT[g.role](s.name);
-    return { id, giver: g.id, kind: 'visit', generated: true, spot: { x: s.x, z: s.z, name: s.name }, pay: Math.round(4 + (d / 1000) * 4), offer, thanks };
+    const [offer, thanks] = (toMark ? VISIT_LANDMARK : VISIT)[g.role](s.name);
+    return { id, giver: g.id, kind: 'visit', generated: true, spot: { x: s.x, z: s.z, name: s.name, r: s.r, landmark: toMark }, pay: Math.round(4 + (d / 1000) * 4), offer, thanks };
   }
   // A fish of at least some weight.
   function fishJob(id, g) {
@@ -227,7 +238,7 @@ export function createJobs(scene, npcs, propMat, people = null) {
       return { x: p.x, z: p.z, label };
     }
     if (j.kind === 'water') return { x: LAKE.x, z: LAKE.z, label: 'Fill the canteen in Caldwell Lake' };
-    if (j.kind === 'visit') return { x: j.spot.x, z: j.spot.z, label: `Look in on ${j.spot.name}` };
+    if (j.kind === 'visit') return { x: j.spot.x, z: j.spot.z, label: j.spot.landmark ? `Ride out to ${j.spot.name}` : `Look in on ${j.spot.name}` };
     if (j.kind === 'fish') return { x: back.x, z: back.z, label: `Catch a fish over ${j.lb} lb for ${back.name}` };
     if (j.kind === 'strays') {
       const left = cows.filter((c) => !c.herded);
@@ -325,9 +336,9 @@ export function createJobs(scene, npcs, propMat, people = null) {
         emit({ type: 'stage', text, bell: !!j.bell });
       }
     }
-    if (a.stage === 'go' && j.kind === 'visit' && Math.hypot(player.x - j.spot.x, player.z - j.spot.z) < 30) {
+    if (a.stage === 'go' && j.kind === 'visit' && Math.hypot(player.x - j.spot.x, player.z - j.spot.z) < (j.spot.landmark ? (j.spot.r || 10) + 12 : 30)) {
       a.stage = 'report';
-      emit({ type: 'stage', text: `Folks at ${j.spot.name} are fine. Ride back to ${who(j.giver).name}.` });
+      emit({ type: 'stage', text: j.spot.landmark ? `You take a good look around ${j.spot.name}. Ride back to ${who(j.giver).name}.` : `Folks at ${j.spot.name} are fine. Ride back to ${who(j.giver).name}.` });
     }
     if (a.stage === 'go' && j.kind === 'water') {
       if (Math.hypot(player.x - LAKE.x, player.z - LAKE.z) < LAKE.r * 0.45) { a.stage = 'report'; emit({ type: 'stage', text: 'Canteen filled. Back to Doc Wilder.' }); }
