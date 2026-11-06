@@ -37,6 +37,8 @@ Andrew asked for no open decisions and a finished game by the end of November, s
 
 - Generated work (Nov 5): settlers no longer only want deliveries. By role, about a quarter of offers are something else: ranchers send you after three strays 250 to 500 m out, marshals, miners and townswomen ask you to look in on a settlement 1.5 to 5 km away and report back, and merchants and townswomen want a fish over a set weight (0.5 to 2 lb), which ties fishing into the job loop. Each kind is picked again from the job's id after every job, so the same person varies. Across the 84 settlers the first offers came out 62 deliveries, 15 visits, 11 fish and 4 strays.
 
+- Landmarks out in the territory (Nov 5): 27 generated landmarks, one chance per 2.5 km square, at least 700 m from any settlement, chosen by the land: hoodoo spires in canyon country, cairns and giant pines in the mountains, giant pines and lone graves in wet country, wagon wrecks and fort ruins on the dry flats and the grass. Each has a discovery stamp, a map mark, collision, and a line in the journal, which also counts how many you've found. Meshes stream within 2 km; trees keep clear of them.
+
 ## The territory
 - 20 km x 20 km. Terrain streams in 256 m chunks near the player and 1 km chunks out to the fog, built in a web worker (src/terrain-worker.js). Height and biome rules live in src/world.js and src/surface.js and are shared by the worker, collision and the minimap.
 - No floating origin yet: 32 bit positions at 10 km are good to about 1 mm, which is fine for terrain and riding. Revisit if shadows or the camera shimmer at the edges.
