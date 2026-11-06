@@ -18,10 +18,11 @@ An original open world western for the browser. Ride a valley at your own pace, 
 | Journal and settings | Tap the place name, top left | J |
 | Map of the territory | Tap the minimap | M |
 | Sleep (with a bedroll, at night) | Action button | B |
+| Fish (with a rod, on foot, facing water) | Action button | F |
 
 ## How it plays
 
-Eight people across Brass Hollow, Caldwell Crossing, Drover's Camp and Widow's Rest have work: deliveries, a powder run you can't gallop, scouting Kettle Ridge, lake water for the doctor, and three stray steers to drive home. Four landmarks (a sandstone arch, a mine, a fire lookout and an old mission) have jobs of their own once you've worked a while. Out past the valley, past deer and pronghorn that scatter when you ride up and across rivers you can ford, are 43 more towns, ranches and camps, joined by dirt roads, with 84 settlers who always have something that needs carrying. Spend the pay at the store (a faster saddle, a lantern, a spyglass, a bedroll) or on stage tickets between towns you've found. Jobs show on the minimap as a brass ring. Ida Pell in Brass Hollow sells the homestead deed for $60. Progress saves to your browser on its own.
+Eight people across Brass Hollow, Caldwell Crossing, Drover's Camp and Widow's Rest have work: deliveries, a powder run you can't gallop, scouting Kettle Ridge, lake water for the doctor, and three stray steers to drive home. Four landmarks (a sandstone arch, a mine, a fire lookout and an old mission) have jobs of their own once you've worked a while. Out past the valley, past deer and pronghorn that scatter when you ride up and across rivers you can ford, are 43 more towns, ranches and camps, joined by dirt roads, with 84 settlers who always have something that needs carrying. Spend the pay at the store (a faster saddle, a lantern, a spyglass, a bedroll, a fishing rod) or on stage tickets between towns you've found. Jobs show on the minimap as a brass ring. Ida Pell in Brass Hollow sells the homestead deed for $60. Fish the lake and the rivers from the bank and sell the catch to any merchant. Progress saves to your browser on its own.
 
 ## Run it locally
 

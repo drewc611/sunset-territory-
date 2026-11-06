@@ -33,13 +33,15 @@ Andrew asked for no open decisions and a finished game by the end of November, s
 - Draw calls (Nov 5): the jointed horse and the player were 12 and 10 meshes, each drawn again for shadows. They're now one skinned mesh each (skinRig in models.js; joints are bones, so the gait code is unchanged). High went from 168 to 124 calls, Low from 81 to 59, at the start of the valley.
 - KTX2 dropped (Nov 5): there are three 512 px textures, about 4 MB of GPU memory with mips. KTX2 would add a transcoder of roughly 500 KB and need 'wasm-unsafe-eval' in the CSP to save a few MB. Not worth it unless the phone runs short of memory.
 
+- Fishing (Nov 5): the first thing to do out in the territory that isn't a job. On foot, facing the lake or a river with real water under the float, the action button casts. A bite comes after 5 to 17 s and you have 1.3 s to pull. Perch and bass in the lake; trout in mountain and wet rivers, catfish in dry lowland ones. The creel holds six, so a trip to a merchant is part of it, and fish sell for $1 to $8, below what deliveries pay per minute, so jobs stay the way to the deed. No combat, no hunting: wildlife stays something to watch.
+
 ## The territory
 - 20 km x 20 km. Terrain streams in 256 m chunks near the player and 1 km chunks out to the fog, built in a web worker (src/terrain-worker.js). Height and biome rules live in src/world.js and src/surface.js and are shared by the worker, collision and the minimap.
 - No floating origin yet: 32 bit positions at 10 km are good to about 1 mm, which is fine for terrain and riding. Revisit if shadows or the camera shimmer at the edges.
 - The horse is now a jointed low poly horse built in code (src/horse-rig.js) with a real walk, trot and gallop and a standing idle (tail swish, weight shift, grazing when you've got down). It matches the rest of the low poly art better than Horse.glb and fixes walking playing a slowed gallop. ?horse=glb brings the old model back for comparison.
 
 - Generated work: 84 residents across the 43 settlements. Anyone whose written jobs are done, valley folk included, offers deliveries to someone 0.8 to 6 km away in another settlement, paid by distance (fragile loads pay more and fail at a gallop). The work never runs out.
-- Money sinks: merchants sell a fine saddle ($40, gallop 25 to 30 m/s), a lantern ($15), a spyglass ($25, map reveals 2.5 km around you instead of 1.5) and a bedroll ($12, sleep until dawn on foot at night). Marshals and sheriffs sell stage tickets to towns you've found, $2 plus $1.50 a km, taking about an hour of game time per 12 km.
+- Money sinks: merchants sell a fine saddle ($40, gallop 25 to 30 m/s), a lantern ($15), a spyglass ($25, map reveals 2.5 km around you instead of 1.5) a bedroll ($12, sleep until dawn on foot at night) and a fishing rod ($5). Marshals and sheriffs sell stage tickets to towns you've found, $2 plus $1.50 a km, taking about an hour of game time per 12 km.
 
 - Rivers: about 140 km of channel, 20 to 30 m of water across and 1.6 m deep at most, so every river is a ford; the horse wades and nothing swims. They fade out in high mountains and stop short of the valley. Settlement sites avoid river banks, which cut the count from 54 to 43.
 
