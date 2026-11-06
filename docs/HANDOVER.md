@@ -61,6 +61,8 @@ Andrew asked for no open decisions and a finished game by the end of November, s
 
 - Graphics pass 7, grass (Nov 5): the grass patch around the rider is round instead of square and its tufts shrink over the outer 30%, so it fades out rather than ending in a line. Radius by tier: Low 28 m, Medium 34, High 40 (as before), Ultra 56. Still one instanced draw call; Ultra lays up to about 15,000 tufts each time the rider crosses a 10 m cell.
 
+- Graphics pass 8, night (Nov 5): after sunset the one shadow-casting light used to keep following the sun under the horizon, so night was lit faintly from below the ground. Now it switches to the moon, opposite the sun, once the sun is 6% below the horizon: cool blue-white, up to 0.32 of full sun, with moon shadows. The sky draws a pale moon disk with a soft glow. Still one shadow map.
+
 ## The territory
 - 20 km x 20 km. Terrain streams in 256 m chunks near the player and 1 km chunks out to the fog, built in a web worker (src/terrain-worker.js). Height and biome rules live in src/world.js and src/surface.js and are shared by the worker, collision and the minimap.
 - No floating origin yet: 32 bit positions at 10 km are good to about 1 mm, which is fine for terrain and riding. Revisit if shadows or the camera shimmer at the edges.

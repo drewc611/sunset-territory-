@@ -13,6 +13,7 @@ const PAL = {
 };
 const DUST_FOG = C(0xd9b98c);
 const BOUNCE = C(0x6a5236); // light thrown back up off dry ground
+const MOON = C(0xa8bce8);   // cool moonlight
 const WHITE = C(0xffffff);
 
 // Inverse of three's ACES fit (see the sky shader for the same thing in GLSL).
@@ -47,7 +48,7 @@ export function createSky(scene, renderer, { shadowSize = 2048 } = {}) {
 
   const uniforms = {
     zenith: { value: C(0x7fb3e0) }, horizon: { value: C(0xe9c9a0) },
-    sunDir: { value: new THREE.Vector3(0, 1, 0) }, sunColor: { value: C(0xfff0c0) }, night: { value: 0 },
+    sunDir: { value: new THREE.Vector3(0, 1, 0) }, moonDir: { value: new THREE.Vector3(0, -1, 0) }, sunColor: { value: C(0xfff0c0) }, night: { value: 0 },
     invTone: { value: 0 }, exposure: { value: 1 }, time: { value: 0 }, cover: { value: 0 },
   };
   const dome = new THREE.Mesh(
@@ -56,7 +57,7 @@ export function createSky(scene, renderer, { shadowSize = 2048 } = {}) {
       uniforms, side: THREE.BackSide, depthWrite: false, fog: false, toneMapped: false,
       vertexShader: /* glsl */`varying vec3 vDir;
         void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-      fragmentShader: /* glsl */`uniform vec3 zenith, horizon, sunDir, sunColor; uniform float night, invTone, exposure, time, cover; varying vec3 vDir;
+      fragmentShader: /* glsl */`uniform vec3 zenith, horizon, sunDir, moonDir, sunColor; uniform float night, invTone, exposure, time, cover; varying vec3 vDir;
         // With post processing on, the output pass tone maps everything, sky included.
         // The sky is designed untoned, so on that path it outputs the inverse of three's
         // ACES fit: after the output pass it lands back on the intended colors.
@@ -94,6 +95,9 @@ export function createSky(scene, renderer, { shadowSize = 2048 } = {}) {
           col += vec3(step(0.9985, hash(g)) * night * smoothstep(0.0, 0.2, d.y)) * 0.9;
           col = mix(col, col * 0.35, night * (1.0 - h * 0.3));
           col += sunColor * disk * 2.5 * (1.0 - night);
+          // The moon, opposite the sun: a pale disk with a soft glow, up at night.
+          float m = max(dot(d, moonDir), 0.0);
+          col += vec3(0.85, 0.9, 1.0) * (smoothstep(0.99955, 0.9997, m) * 1.4 + pow(m, 60.0) * 0.12) * night * (1.0 - cover * 0.8);
           if (invTone > 0.5) {
             // Keep the sky under the bloom threshold so only the sun disk glows.
             col = min(invAces(col - sunColor * disk * 2.5 * (1.0 - night)), vec3(2.2));
@@ -117,7 +121,11 @@ export function createSky(scene, renderer, { shadowSize = 2048 } = {}) {
     const ang = (clockH / 24 - 0.25) * Math.PI * 2;
     const elev = Math.sin(ang);
     uniforms.sunDir.value.set(Math.cos(ang), Math.sin(ang), 0.35).normalize();
-    sun.position.copy(uniforms.sunDir.value).multiplyScalar(150).add(focus);
+    uniforms.moonDir.value.set(-Math.cos(ang), -Math.sin(ang), 0.2).normalize();
+    // One shadow casting light: the sun by day, the moon by night, so night light
+    // comes from the sky instead of from the sun under the ground.
+    const moonUp = elev < -0.06;
+    sun.position.copy(moonUp ? uniforms.moonDir.value : uniforms.sunDir.value).multiplyScalar(150).add(focus);
     sun.target.position.copy(focus);
 
     let a, b, k;
@@ -145,8 +153,13 @@ export function createSky(scene, renderer, { shadowSize = 2048 } = {}) {
     scene.fog.far = (330 - night * 120) * (1 - overcast * 0.4) * fogScale;
 
     // Softer falloff than the prototype's linear curve so golden hour keeps its light.
-    sun.intensity = Math.pow(Math.max(0.02, elev), 0.55) * 1.5 * L * (1 - overcast * 0.7);
-    sun.color.copy(uniforms.sunColor.value);
+    if (moonUp) {
+      sun.intensity = Math.min(1, (-elev - 0.06) * 5) * 0.32 * L * (1 - overcast * 0.85);
+      sun.color.copy(MOON);
+    } else {
+      sun.intensity = Math.pow(Math.max(0.02, elev), 0.55) * 1.5 * L * (1 - overcast * 0.7);
+      sun.color.copy(uniforms.sunColor.value);
+    }
     // Fill: a cool sky above and warm bounce from the ground below, against the warm
     // sun. Light and shadow then differ in color as well as brightness, which is
     // most of what keeps the low poly shapes from looking flat. Extra fill at
