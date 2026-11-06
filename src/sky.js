@@ -9,9 +9,10 @@ const PAL = {
   night: { z: C(0x070b18), h: C(0x1a2238), sun: C(0x8090c0) },
   dawn: { z: C(0x5a6fa8), h: C(0xf0a070), sun: C(0xffb070) },
   day: { z: C(0x5b9bd8), h: C(0xd9e4ec), sun: C(0xfff2d0) },
-  dusk: { z: C(0x3a3560), h: C(0xf07040), sun: C(0xff8040) },
+  dusk: { z: C(0x3c4070), h: C(0xe8966a), sun: C(0xffa25a) }, // amber, not red: a red horizon tinted every color through the fog
 };
 const DUST_FOG = C(0xd9b98c);
+const BOUNCE = C(0x6a5236); // light thrown back up off dry ground
 const WHITE = C(0xffffff);
 
 // Inverse of three's ACES fit (see the sky shader for the same thing in GLSL).
@@ -47,7 +48,7 @@ export function createSky(scene, renderer, { shadowSize = 2048 } = {}) {
   const uniforms = {
     zenith: { value: C(0x7fb3e0) }, horizon: { value: C(0xe9c9a0) },
     sunDir: { value: new THREE.Vector3(0, 1, 0) }, sunColor: { value: C(0xfff0c0) }, night: { value: 0 },
-    invTone: { value: 0 }, exposure: { value: 1 },
+    invTone: { value: 0 }, exposure: { value: 1 }, time: { value: 0 }, cover: { value: 0 },
   };
   const dome = new THREE.Mesh(
     new THREE.SphereGeometry(3000, 32, 16),
@@ -55,7 +56,7 @@ export function createSky(scene, renderer, { shadowSize = 2048 } = {}) {
       uniforms, side: THREE.BackSide, depthWrite: false, fog: false, toneMapped: false,
       vertexShader: /* glsl */`varying vec3 vDir;
         void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-      fragmentShader: /* glsl */`uniform vec3 zenith, horizon, sunDir, sunColor; uniform float night, invTone, exposure; varying vec3 vDir;
+      fragmentShader: /* glsl */`uniform vec3 zenith, horizon, sunDir, sunColor; uniform float night, invTone, exposure, time, cover; varying vec3 vDir;
         // With post processing on, the output pass tone maps everything, sky included.
         // The sky is designed untoned, so on that path it outputs the inverse of three's
         // ACES fit: after the output pass it lands back on the intended colors.
@@ -69,11 +70,25 @@ export function createSky(scene, renderer, { shadowSize = 2048 } = {}) {
           return max(inverse(IN) * v, 0.0) * (0.6 / exposure);
         }
         float hash(vec3 p){ return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453); }
+        float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+          return mix(mix(hash(vec3(i, 0.0)), hash(vec3(i + vec2(1.0, 0.0), 0.0)), f.x), mix(hash(vec3(i + vec2(0.0, 1.0), 0.0)), hash(vec3(i + vec2(1.0, 1.0), 0.0)), f.x), f.y); }
+        float fbm(vec2 p){ float s = 0.0, a = 0.5; for (int i = 0; i < 5; i++) { s += a * vn(p); p = p * 2.03 + vec2(1.7, 9.2); a *= 0.5; } return s; }
         void main(){
           vec3 d = normalize(vDir); float h = clamp(d.y, 0.0, 1.0);
           vec3 col = mix(horizon, zenith, pow(h, 0.55));
+          col = mix(col, horizon * 1.08, smoothstep(0.14, 0.0, d.y) * 0.45); // a bright band along the horizon
           float s = max(dot(d, sunDir), 0.0);
-          col += sunColor * pow(s, 6.0) * 0.35;
+          col += sunColor * (pow(s, 6.0) * 0.22 + pow(s, 48.0) * 0.5);       // wide glow, then a tight halo
+          // High, wind-combed cloud: lit gold toward the sun, cooler away from it.
+          if (d.y > 0.0) {
+            vec2 cuv = d.xz / (d.y + 0.12) * 1.05 + vec2(time * 0.004, time * 0.0015);
+            float n = fbm(cuv * vec2(1.0, 1.8));
+            float th = mix(0.5, 0.26, cover);
+            float c = smoothstep(th, th + 0.24, n) * smoothstep(0.0, 0.16, d.y);
+            vec3 lit = mix(horizon, vec3(1.0), 0.5) * (0.8 + 0.45 * pow(s, 4.0)) + sunColor * pow(s, 14.0) * 0.5;
+            vec3 shade = mix(zenith, horizon, 0.6) * 0.88;
+            col = mix(col, mix(shade, lit, 0.45 + 0.55 * n), c * 0.9);
+          }
           float disk = smoothstep(0.9985, 0.9995, s);
           vec3 g = floor(d * 180.0);
           col += vec3(step(0.9985, hash(g)) * night * smoothstep(0.0, 0.2, d.y)) * 0.9;
@@ -124,6 +139,7 @@ export function createSky(scene, renderer, { shadowSize = 2048 } = {}) {
     const night = Math.max(0, Math.min(1, (-elev + 0.05) / 0.25));
     uniforms.night.value = night;
     scene.fog.color.copy(uniforms.horizon.value).lerp(DUST_FOG, 0.25 * (1 - night));
+    { const f = scene.fog.color, l = f.r * 0.3 + f.g * 0.59 + f.b * 0.11; f.lerp(GREY.setRGB(l, l, l * 1.04), 0.18); } // a little less saturated: haze, not colored glass
     // Base fog is the prototype's 70 to 330 m, scaled out by the tier's view distance.
     scene.fog.near = (70 - night * 30) * (1 - overcast * 0.5) * fogScale;
     scene.fog.far = (330 - night * 120) * (1 - overcast * 0.4) * fogScale;
@@ -131,9 +147,14 @@ export function createSky(scene, renderer, { shadowSize = 2048 } = {}) {
     // Softer falloff than the prototype's linear curve so golden hour keeps its light.
     sun.intensity = Math.pow(Math.max(0.02, elev), 0.55) * 1.5 * L * (1 - overcast * 0.7);
     sun.color.copy(uniforms.sunColor.value);
-    hemi.intensity = (0.22 + Math.max(0, elev) * 0.45) * L;
-    // Fill takes half its color from the horizon so dusk shadows stay warm instead of going purple-black.
-    hemi.color.copy(uniforms.zenith.value).lerp(uniforms.horizon.value, 0.5).lerp(tmp.copy(WHITE), 0.35);
+    // Fill: a cool sky above and warm bounce from the ground below, against the warm
+    // sun. Light and shadow then differ in color as well as brightness, which is
+    // most of what keeps the low poly shapes from looking flat. Extra fill at
+    // golden hour and twilight so dusk reads instead of going muddy.
+    const twilight = Math.max(0, 1 - Math.abs(elev - 0.03) / 0.22);
+    hemi.intensity = (0.24 + Math.max(0, elev) * 0.42 + twilight * 0.3) * L;
+    hemi.color.copy(uniforms.zenith.value).lerp(uniforms.horizon.value, 0.2).lerp(tmp.copy(WHITE), 0.4);
+    hemi.groundColor.copy(BOUNCE).lerp(uniforms.horizon.value, 0.3);
     // Lower than the prototype at midday, which blew the ground out to white once it had texture detail.
     renderer.toneMappingExposure = 0.72 - Math.max(0, elev) * 0.22 + (elev > -0.2 && elev < 0.2 ? 0.15 : 0);
     uniforms.exposure.value = renderer.toneMappingExposure;
@@ -148,6 +169,8 @@ export function createSky(scene, renderer, { shadowSize = 2048 } = {}) {
       invAces(f, renderer.toneMappingExposure);
     }
     dome.position.copy(camera.position);
+    uniforms.time.value = performance.now() / 1000;
+    uniforms.cover.value = overcast;
     state.night = night;
     state.elev = elev;
     return state;
