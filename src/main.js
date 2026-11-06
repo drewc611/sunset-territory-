@@ -217,7 +217,7 @@ input.onAction(act);
 input.onWhistle(whistle);
 input.onJournal(() => openJournal());
 document.getElementById('place').addEventListener('click', () => openJournal());
-if (import.meta.env.DEV || params.has('debug')) window.__game = { player, rider, foot, act, nearHorse, jobs, npcs, people, mount: () => mount(), dismount: () => dismount(), get shop() { return shop; }, get fishing() { return fishing; }, wildlife };
+if (import.meta.env.DEV || params.has('debug')) window.__game = { player, rider, foot, act, nearHorse, jobs, npcs, people, mount: () => mount(), dismount: () => dismount(), get shop() { return shop; }, get fishing() { return fishing; }, photo: (on) => togglePhoto(on), wildlife };
 
 function actionLabel() {
   if (fishing.active) return fishing.label(foot, player.mounted);
@@ -238,6 +238,7 @@ const ui = createUi({
     if (k === 'bigControls') document.body.classList.toggle('big', v);
   },
   onNewGame() { clearGame(); location.reload(); },
+  onPhoto() { togglePhoto(true); },
 });
 // --- the store, the stagecoach, and what they sell -------------------------------
 const shop = createShop({
@@ -295,6 +296,50 @@ function stageTo(town, km) {
 
 const worldMap = createWorldMap({ terrain, discovered: hud.discovered, getPlayer: () => focusOf(), getTarget: () => jobs.target() });
 input.onMap(() => worldMap.toggle());
+
+// --- photo mode: hide the HUD, orbit the camera freely, save a picture ------------
+const photo = { on: false, yaw: 0, pitch: 0.25, dist: 7, save: false };
+const photoBar = document.getElementById('photoBar');
+function togglePhoto(on = !photo.on) {
+  if (on && (ui.busy || worldMap.isOpen)) return;
+  photo.on = on;
+  document.body.classList.toggle('photo', on);
+  photoBar.hidden = !on;
+  if (on) {
+    const f = focusOf();
+    photo.yaw = Math.atan2(camera.position.x - f.x, camera.position.z - f.z);
+    photo.dist = Math.min(20, Math.max(3, Math.hypot(camera.position.x - f.x, camera.position.z - f.z)));
+    photo.pitch = 0.25;
+    document.getElementById('phDone').focus({ preventScroll: true });
+  }
+}
+input.onPhoto(() => togglePhoto());
+addEventListener('keydown', (e) => { if (photo.on && e.key === 'Escape') togglePhoto(false); });
+document.getElementById('phDone').addEventListener('click', () => togglePhoto(false));
+document.getElementById('phSave').addEventListener('click', () => { photo.save = true; });
+document.getElementById('phIn').addEventListener('click', () => { photo.dist = Math.max(2, photo.dist / 1.3); });
+document.getElementById('phOut').addEventListener('click', () => { photo.dist = Math.min(60, photo.dist * 1.3); });
+function photoCamera(dt, f, c) {
+  photo.yaw += c.camYawDelta;
+  photo.pitch = Math.max(-0.15, Math.min(1.3, photo.pitch + (c.camPitchDelta || 0)));
+  photo.dist = Math.max(2, Math.min(60, photo.dist * Math.exp((c.zoom || 0) * 0.001)));
+  const r = photo.dist * Math.cos(photo.pitch);
+  const x = f.x + Math.sin(photo.yaw) * r, z = f.z + Math.cos(photo.yaw) * r;
+  const y = Math.max(f.y + 1.4 + Math.sin(photo.pitch) * photo.dist, height(x, z) + 0.5);
+  camera.position.set(x, y, z);
+  camera.lookAt(f.x, f.y + 1.3, f.z);
+}
+function savePicture() {
+  renderer.domElement.toBlob((blob) => {
+    if (!blob) return;
+    const a = document.createElement('a');
+    const h = Math.floor(clockH), m = Math.floor((clockH % 1) * 60);
+    a.download = `sunset-territory-day${dayIndex + 1}-${String(h).padStart(2, '0')}${String(m).padStart(2, '0')}.png`;
+    a.href = URL.createObjectURL(blob);
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }, 'image/png');
+}
 if (params.has('reveal')) for (let z = -9750; z < 10000; z += 1500) for (let x = -9750; x < 10000; x += 1500) worldMap.reveal(x, z); // ?reveal, for testing
 document.getElementById('map').addEventListener('click', () => worldMap.open());
 function openJournal() { ui.toggleJournal({ jobs, discovered: hud.discovered, settings, fishing }); }
@@ -414,11 +459,11 @@ renderer.setAnimationLoop((now) => {
   const forced = bench.drive(dt, rider);
   if (forced && !player.mounted) mount();
   let ctl = forced || input.read(dt);
-  if ((ui.busy || worldMap.isOpen) && !forced) ctl = IDLE;
+  if ((ui.busy || worldMap.isOpen || photo.on) && !forced) ctl = photo.on ? { ...IDLE, camYawDelta: ctl.camYawDelta, camPitchDelta: ctl.camPitchDelta, zoom: ctl.zoom } : IDLE;
   stepHorse(dt, ctl, player.mounted);
   if (!player.mounted) stepFoot(dt, ctl);
   const focus = player.mounted ? rider : foot;
-  updateCamera(dt, focus, ctl, !player.mounted);
+  if (photo.on) photoCamera(dt, focus, ctl); else updateCamera(dt, focus, ctl, !player.mounted);
   if (params.has('side')) { // ?side: camera rides alongside, for judging gaits
     const sx = focus.x + Math.cos(focus.heading) * 6, sz = focus.z - Math.sin(focus.heading) * 6;
     camera.position.set(sx, Math.max(focus.y, height(sx, sz)) + 1.4, sz);
@@ -454,6 +499,7 @@ renderer.setAnimationLoop((now) => {
   hints(dt);
   renderer.info.reset();
   if (!worldMap.isOpen) post.render(); // the map covers the screen: don't draw the world under it
+  if (photo.save) { photo.save = false; savePicture(); } // right after drawing, while the frame is still in the buffer
 
   const cpuMs = performance.now() - t0;
   perf.record(frameMs, cpuMs);

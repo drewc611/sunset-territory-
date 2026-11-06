@@ -5,7 +5,7 @@ import { landmarks } from './landmarks.js';
 
 // Dialogue strip, money and job lines, notices, and the journal. Per docs/DESIGN.md:
 // serif on dark leather at the screen edges; the journal is a full page, not a card.
-export function createUi({ onSetting, onNewGame }) {
+export function createUi({ onSetting, onNewGame, onPhoto }) {
   const $ = (id) => document.getElementById(id);
   const dialog = $('dialog'), dName = $('dName'), dText = $('dText'), dChoices = $('dChoices');
   const money = $('money'), jobEl = $('job'), notice = $('notice');
@@ -73,12 +73,14 @@ export function createUi({ onSetting, onNewGame }) {
         </select></label>
         <label><input type="checkbox" id="setInvert" ${settings.invertCam ? 'checked' : ''}> Invert camera drag</label>
         <label><input type="checkbox" id="setBig" ${settings.bigControls ? 'checked' : ''}> Larger touch controls</label>
+        <button type="button" id="photoMode">Photo mode (P)</button>
         <button type="button" id="newGame">Start over</button>
       </section>`;
     $('setSound').onchange = (e) => onSetting('sound', e.target.checked);
     $('setQuality').onchange = (e) => onSetting('quality', e.target.value);
     $('setInvert').onchange = (e) => onSetting('invertCam', e.target.checked);
     $('setBig').onchange = (e) => onSetting('bigControls', e.target.checked);
+    $('photoMode').onclick = () => { journal.hidden = true; if (onPhoto) onPhoto(); };
     $('newGame').onclick = () => { if (confirm('Start over? Your money, jobs and map will be cleared.')) onNewGame(); };
   }
   // Landmarks found out in the territory.

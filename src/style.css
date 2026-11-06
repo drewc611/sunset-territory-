@@ -90,3 +90,11 @@ body.big #act { transform: scale(1.25); transform-origin: right bottom; bottom: 
 
 /* The hidden attribute must win over the display rules above. */
 [hidden] { display: none !important; }
+
+/* Photo mode: the HUD steps aside; one leather strip along the bottom edge. */
+body.photo #hud, body.photo #dialog { display: none; }
+#photoBar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: flex; align-items: center; gap: 8px; padding: 8px calc(12px + env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) calc(12px + env(safe-area-inset-left, 0px)); background: var(--hud); border-top: 1px solid rgba(201,162,77,.45); }
+#photoBar span { font-family: var(--font-body); font-style: italic; color: var(--paper); font-size: 14px; margin-right: auto; }
+#photoBar button { font-family: var(--font-display); font-size: 15px; min-width: 44px; min-height: 40px; background: var(--leather); color: var(--paper); border: 2px solid var(--brass); padding: 4px 12px; cursor: pointer; }
+#photoBar button:focus-visible { outline: 3px solid var(--paper); outline-offset: 2px; }
+@media (max-width: 560px) { #photoBar span { display: none; } }

@@ -44,23 +44,25 @@ export function createInput(canvas) {
   }
 
   // Camera drag: right half of the screen on touch, anywhere with a mouse.
-  let dragId = null, dragX = 0, dragDelta = 0;
+  let dragId = null, dragX = 0, dragY = 0, dragDelta = 0, dragDY = 0, wheel = 0;
   canvas.addEventListener('pointerdown', (e) => {
     if (dragId !== null) return;
     if (e.pointerType === 'touch' && e.clientX < innerWidth / 2) return;
-    dragId = e.pointerId; dragX = e.clientX;
+    dragId = e.pointerId; dragX = e.clientX; dragY = e.clientY;
     canvas.setPointerCapture(e.pointerId);
   });
   canvas.addEventListener('pointermove', (e) => {
     if (e.pointerId !== dragId) return;
     dragDelta += e.clientX - dragX; dragX = e.clientX;
+    dragDY += e.clientY - dragY; dragY = e.clientY;
   });
   const endDrag = (e) => { if (e.pointerId === dragId) dragId = null; };
   canvas.addEventListener('pointerup', endDrag);
   canvas.addEventListener('pointercancel', endDrag);
+  canvas.addEventListener('wheel', (e) => { wheel += e.deltaY; }, { passive: true });
 
   // Contextual action (F, or the action button): dismount, mount, or whistle. H whistles.
-  const handlers = { action: [], whistle: [], journal: [], map: [], bed: [] };
+  const handlers = { action: [], whistle: [], journal: [], map: [], bed: [], photo: [] };
   let invert = 1;
   addEventListener('keydown', (e) => {
     if (e.repeat) return;
@@ -70,6 +72,7 @@ export function createInput(canvas) {
     if (k === 'j') handlers.journal.forEach((f) => f());
     if (k === 'm') handlers.map.forEach((f) => f());
     if (k === 'b') handlers.bed.forEach((f) => f());
+    if (k === 'p') handlers.photo.forEach((f) => f());
   });
   const actEl = document.getElementById('act');
   actEl.addEventListener('pointerdown', (e) => { e.preventDefault(); handlers.action.forEach((f) => f()); });
@@ -90,7 +93,9 @@ export function createInput(canvas) {
     if (keys.q) yaw += dt * 2;
     if (keys.e) yaw -= dt * 2;
     yaw -= dragDelta * 0.006 * invert;
-    dragDelta = 0;
+    state.camPitchDelta = dragDY * 0.004;
+    state.zoom = wheel;
+    dragDelta = 0; dragDY = 0; wheel = 0;
     state.camYawDelta = yaw;
     state.dragging = dragId !== null;
     return state;
@@ -98,7 +103,7 @@ export function createInput(canvas) {
 
   return {
     read, state,
-    onAction: (f) => handlers.action.push(f), onWhistle: (f) => handlers.whistle.push(f), onJournal: (f) => handlers.journal.push(f), onMap: (f) => handlers.map.push(f), onBed: (f) => handlers.bed.push(f),
+    onAction: (f) => handlers.action.push(f), onWhistle: (f) => handlers.whistle.push(f), onJournal: (f) => handlers.journal.push(f), onMap: (f) => handlers.map.push(f), onBed: (f) => handlers.bed.push(f), onPhoto: (f) => handlers.photo.push(f),
     setInvert: (v) => { invert = v ? -1 : 1; },
   };
 }
