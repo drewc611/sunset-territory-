@@ -172,7 +172,7 @@ export function createProps(scene, base, sampleHeight = null) {
     sh.uniforms.uNight = uNight;
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', `#include <common>
-        attribute float glow; attribute float sway; varying float vGlow; varying float vLeaf; uniform float uTime;`)
+        attribute float glow; attribute float sway; varying float vGlow; varying float vLeaf; varying float vVar; uniform float uTime;`)
       .replace('#include <begin_vertex>', `#include <begin_vertex>
         vGlow = glow;
         vLeaf = clamp(sway * 1.6, 0.0, 1.0);
@@ -181,13 +181,25 @@ export function createProps(scene, base, sampleHeight = null) {
         #else
           vec3 ip = vec3(0.0);
         #endif
+        // Each instance its own shade, from where it stands: forests stop looking cloned.
+        #ifdef USE_INSTANCING
+          vVar = fract(sin(dot(ip.xz, vec2(12.9898, 78.233))) * 43758.5453);
+        #else
+          vVar = 0.5;
+        #endif
         float ph = uTime * 1.3 + ip.x * 0.21 + ip.z * 0.17;
         transformed.x += sin(ph) * sway * 0.22;
         transformed.z += cos(ph * 0.8) * sway * 0.14;`);
     leafUniforms(sh);
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', `#include <common>
-        varying float vGlow; varying float vLeaf; uniform float uNight; uniform vec3 uSunDir; uniform vec3 uSunCol;`)
+        varying float vGlow; varying float vLeaf; varying float vVar; uniform float uNight; uniform vec3 uSunDir; uniform vec3 uSunCol;`)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        {
+          float d = vVar - 0.5;
+          // Foliage swings between deep green and dry olive; rock and wood only in brightness.
+          diffuseColor.rgb *= vec3(1.0) + d * mix(vec3(0.14), vec3(0.34, 0.2, -0.06), vLeaf);
+        }`)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
         totalEmissiveRadiance += vec3(1.0, 0.6, 0.28) * vGlow * (0.05 + uNight * 4.0);`)
       .replace('#include <opaque_fragment>', `float leafAmt = vLeaf;${TRANSLUCENT}

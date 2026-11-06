@@ -57,6 +57,8 @@ Andrew asked for no open decisions and a finished game by the end of November, s
 
 - Graphics pass 5, terrain (Nov 5): every tier. Rock faces carry level strata, wavering slightly and strongest in red canyon country, cream bands of hard rock between darker soft ones. Grass to dirt is a height blend, so worn ground shows first in the low spots of the grass and breaks up in patches; rock's own relief breaks up the grass to rock edge. Same textures, no new samples beyond a few arithmetic ops.
 
+- Graphics pass 6, variety (Nov 5): every tier. Each instanced tree, bush and rock gets its own shade from a hash of where it stands: foliage between deep green and dry olive, rock and wood only in brightness, so a stand of the same pine model no longer reads as copies. Merged meshes (settlements) stay neutral. Free: one hash per vertex.
+
 ## The territory
 - 20 km x 20 km. Terrain streams in 256 m chunks near the player and 1 km chunks out to the fog, built in a web worker (src/terrain-worker.js). Height and biome rules live in src/world.js and src/surface.js and are shared by the worker, collision and the minimap.
 - No floating origin yet: 32 bit positions at 10 km are good to about 1 mm, which is fine for terrain and riding. Revisit if shadows or the camera shimmer at the edges.
