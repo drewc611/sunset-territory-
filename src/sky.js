@@ -108,7 +108,7 @@ export function createSky(scene, renderer, { shadowSize = 2048 } = {}) {
   dome.renderOrder = -1;
   scene.add(dome);
 
-  const state = { night: 0, elev: 1, sunColor: uniforms.sunColor.value, sunDir: uniforms.sunDir.value, horizonTint: new THREE.Color() };
+  const state = { night: 0, elev: 1, sunColor: uniforms.sunColor.value, sunDir: uniforms.sunDir.value, zenith: uniforms.zenith.value, horizonTint: new THREE.Color() };
   const tmp = new THREE.Color();
 
   const GREY = new THREE.Color();
