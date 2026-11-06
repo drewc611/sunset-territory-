@@ -10,7 +10,7 @@ import { Builder, pine, cottonwood, juniper, boulder, slab, cactus, sage, snag }
 // so a whole kind of tree is one draw call however many cells are loaded.
 
 const CELL = 128, STEP = 8;            // one candidate spot every 8 m
-const RADIUS = { low: 2, medium: 3, high: 4 };
+const RADIUS = { low: 2, medium: 3, high: 4, ultra: 5 };
 const VALLEY = 190;                    // the valley has its own props inside this square
 
 const cl = (v) => Math.min(1, Math.max(0, v));
@@ -134,7 +134,7 @@ export function createWilds(scene, material, { sampleHeight, collision }) {
   // Beyond the full detail cells, out to the haze: a ring of very cheap trees
   // (one cone or one blob, no trunk, no shadow, no collision) on a coarser 16 m
   // grid with four times the odds, so the forest reads the same from a distance.
-  const FAR_RADIUS = { low: 0, medium: 6, high: 8 };
+  const FAR_RADIUS = { low: 0, medium: 6, high: 8, ultra: 10 };
   let farRadius = FAR_RADIUS.high, farCenter = '';
   const farCells = new Map();
   const farTodo = [];
