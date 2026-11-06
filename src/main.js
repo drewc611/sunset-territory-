@@ -25,6 +25,7 @@ import { createPost } from './post.js';
 import { createWilds } from './wilds.js';
 import { createWildlife } from './wildlife.js';
 import { createTraffic } from './traffic.js';
+import { updateWater } from './waterlook.js';
 import { createWorldMap } from './worldmap.js';
 import { createSettlements } from './settlements.js';
 import { createLandmarks } from './landmarks.js';
@@ -484,6 +485,7 @@ renderer.setAnimationLoop((now) => {
   const s = sky.update(clockH, focusVec.set(focus.x, focus.y, focus.z), camera, ambient.weather.overcast); // shadows follow the player
   s.overcast = ambient.weather.overcast;
   s0night = s.night;
+  updateWater(s);
   ambient.update(dt, { clockH, dayIndex, night: s.night, camera });
   terrain.update(focus.x, focus.z, s.horizonTint);
   worldMap.reveal(focus.x, focus.z, shop.has('spyglass') ? 2 : 1);

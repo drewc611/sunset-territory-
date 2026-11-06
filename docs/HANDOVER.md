@@ -53,6 +53,8 @@ Andrew asked for no open decisions and a finished game by the end of November, s
 
 - Graphics pass 3, light through foliage (Nov 5): every tier. Leaves, brush and grass glow when the sun is behind them, and get a little wrap light on the shaded side. It's in the shared prop material (foliage is whatever has a sway weight) and the grass material, fed the sun's direction and color each frame, faded out below the horizon and under overcast. No new meshes or passes.
 
+- Graphics pass 4, water (Nov 5): every tier. The lake and every river chunk share one lighting snippet (src/waterlook.js): the surface mirrors the sky it faces (horizon color low, zenith overhead), with a Schlick fresnel from water's 2% at a straight-down look to nearly a mirror at a glance, and a sharp sun glint that breaks up across the ripples. Planar reflections were left out: they'd re-render the scene a second time, and the sky reflection gets most of the look for nothing.
+
 ## The territory
 - 20 km x 20 km. Terrain streams in 256 m chunks near the player and 1 km chunks out to the fog, built in a web worker (src/terrain-worker.js). Height and biome rules live in src/world.js and src/surface.js and are shared by the worker, collision and the minimap.
 - No floating origin yet: 32 bit positions at 10 km are good to about 1 mm, which is fine for terrain and riding. Revisit if shadows or the camera shimmer at the edges.

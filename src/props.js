@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { waterUniforms, WATER_PARS, WATER_LIGHT } from './waterlook.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { WORLD, POIS, LAKE, LAKE_Y, hash, fbm, height, nearPOI, valleyBlend, riverInfo } from './world.js';
 import { surface } from './surface.js';
@@ -55,14 +56,10 @@ export function createProps(scene, base, sampleHeight = null) {
   // down it goes clear and dark.
   const uSky = { value: new THREE.Color(0xd9b98c) };
   water.material.onBeforeCompile = (sh) => {
-    sh.uniforms.uSky = uSky;
+    Object.assign(sh.uniforms, waterUniforms);
     sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', '#include <common>\nuniform vec3 uSky;')
-      .replace('#include <opaque_fragment>', `
-        float fres = pow(1.0 - clamp(dot(normalize(vViewPosition), normal), 0.0, 1.0), 4.0);
-        outgoingLight = mix(outgoingLight, uSky, 0.12 + 0.72 * fres);
-        diffuseColor.a = mix(0.72, 0.97, fres);
-        #include <opaque_fragment>`);
+      .replace('#include <common>', `#include <common>\n${WATER_PARS}`)
+      .replace('#include <opaque_fragment>', `${WATER_LIGHT}\n#include <opaque_fragment>`);
   };
   water.rotation.x = -Math.PI / 2;
   water.position.set(LAKE.x, LAKE_Y, LAKE.z);

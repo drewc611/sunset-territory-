@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { waterUniforms, WATER_PARS, WATER_LIGHT } from './waterlook.js';
 
 // Textured terrain. Grass, dirt, rock and snow are blended per pixel in a patched
 // MeshStandardMaterial: rock by slope and height (triplanar so cliffs don't stretch),
@@ -107,22 +108,18 @@ export function createTerrain(scene, renderer, base) {
   const waterMat = new THREE.MeshPhongMaterial({ color: 0x2a6278, specular: 0xffffff, shininess: 60, transparent: true, opacity: 0.85, normalMap: waterNormal, normalScale: new THREE.Vector2(0.9, 0.9), depthWrite: false });
   const uSky = { value: new THREE.Color(0xd9b98c) }, uFlow = { value: 0 };
   waterMat.onBeforeCompile = (sh) => {
-    sh.uniforms.uSky = uSky; sh.uniforms.uFlow = uFlow;
+    Object.assign(sh.uniforms, waterUniforms); sh.uniforms.uFlow = uFlow;
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', '#include <common>\nuniform float uFlow; varying vec2 vRiverUv;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvRiverUv = position.xz * 0.06 + vec2(uFlow, uFlow * 0.6);');
     sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', '#include <common>\nuniform vec3 uSky; varying vec2 vRiverUv;')
+      .replace('#include <common>', `#include <common>\n${WATER_PARS} varying vec2 vRiverUv;`)
       .replace('#include <normal_fragment_maps>', `
         vec3 mapN = texture2D(normalMap, vRiverUv).xyz * 2.0 - 1.0;
         mapN.xy *= normalScale;
         normal = normalize(vec3(mapN.x, mapN.z, mapN.y) * 0.5 + vec3(0.0, 1.0, 0.0));
         normal = normalize((viewMatrix * vec4(normal, 0.0)).xyz);`)
-      .replace('#include <opaque_fragment>', `
-        float fres = pow(1.0 - clamp(dot(normalize(vViewPosition), normal), 0.0, 1.0), 4.0);
-        outgoingLight = mix(outgoingLight, uSky * 0.85, 0.05 + 0.45 * fres);
-        diffuseColor.a = mix(0.7, 0.95, fres);
-        #include <opaque_fragment>`);
+      .replace('#include <opaque_fragment>', `${WATER_LIGHT}\n#include <opaque_fragment>`);
   };
   mat.userData.textures.push(waterNormal);
 
